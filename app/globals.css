@@ -32,7 +32,41 @@
 }
 
 body {
-  /* Default font can be Poppins based on the home mockup */
   font-family: var(--font-poppins), sans-serif;
   touch-action: manipulation;
+  background-color: var(--color-app-bg);
 }
+
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, rgba(0,0,0,0.08) 25%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.08) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skeleton-dark {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes colorCycle {
+  0% { background-color: var(--color-card-coral); }
+  20% { background-color: var(--color-card-yellow); }
+  40% { background-color: var(--color-card-blue); }
+  60% { background-color: var(--color-card-purple); }
+  80% { background-color: var(--color-card-green); }
+  100% { background-color: var(--color-card-pink); }
+}
+
+.skeleton-card-cycle {
+  animation: colorCycle 12s infinite alternate ease-in-out;
+}
+

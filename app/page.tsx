@@ -23,13 +23,71 @@ export default function Home() {
   const bgColor = activeNote?.color || "bg-new-note-bg";
 
   if (loading) {
-    return <div className="flex h-screen w-full items-center justify-center bg-app-bg text-white font-poppins">Loading...</div>;
+    const skeletonColors = ['bg-card-coral', 'bg-card-yellow', 'bg-card-blue', 'bg-card-purple', 'bg-card-green', 'bg-card-pink'];
+    const skeletonCols = [
+      [{ h: 160, color: 0, lines: 4 }, { h: 200, color: 3, lines: 6 }, { h: 130, color: 1, lines: 3 }],
+      [{ h: 190, color: 2, lines: 5 }, { h: 140, color: 4, lines: 3 }, { h: 170, color: 0, lines: 4 }],
+      [{ h: 150, color: 5, lines: 4 }, { h: 180, color: 1, lines: 5 }, { h: 140, color: 2, lines: 3 }],
+      [{ h: 180, color: 4, lines: 5 }, { h: 130, color: 3, lines: 3 }, { h: 160, color: 5, lines: 4 }],
+      [{ h: 140, color: 1, lines: 3 }, { h: 170, color: 0, lines: 5 }, { h: 150, color: 2, lines: 4 }],
+    ];
+
+    return (
+      <div className="w-full h-screen bg-app-bg overflow-hidden flex justify-center">
+        <div className="bg-app-bg text-text-light h-full w-full p-6 md:p-12 overflow-hidden flex flex-col font-poppins max-w-[1200px]">
+          <div className="flex justify-between items-center mb-8 pt-4">
+            <div className="w-12 h-12 rounded-full skeleton-dark" />
+            <div className="flex items-center gap-3">
+              <div className="skeleton-dark h-5 w-28 rounded-md" />
+              <div className="w-12 h-12 rounded-full skeleton-dark" />
+            </div>
+          </div>
+
+          <div className="mb-6 hidden md:block">
+            <div className="skeleton-dark h-12 w-56 rounded-lg" />
+          </div>
+
+          <div className="mb-8">
+            <div className="skeleton-dark h-12 w-full rounded-full" />
+          </div>
+
+          <div className="flex items-start w-full gap-4 md:gap-6">
+            {skeletonCols.map((col, colIndex) => (
+              <div 
+                key={colIndex} 
+                className={`flex-1 flex-col gap-4 md:gap-6 min-w-0 ${
+                  colIndex < 2 ? 'flex' : colIndex < 4 ? 'hidden md:flex' : 'hidden lg:flex'
+                }`}
+              >
+                {col.map((card, cardIndex) => (
+                <div 
+                  key={cardIndex} 
+                  className="rounded-2xl p-4 flex flex-col gap-2 opacity-60 skeleton-card-cycle"
+                  style={{ 
+                    height: `${card.h}px`,
+                    animationDelay: `${-(colIndex * 1.6 + cardIndex * 2.1)}s`
+                  }}
+                >
+                  <div className="skeleton-line h-4 w-3/5 mb-1" />
+                  {Array.from({ length: card.lines }).map((_, i) => (
+                    <div 
+                      key={i} 
+                      className="skeleton-line h-3" 
+                      style={{ width: i === card.lines - 1 ? '40%' : `${90 - i * 8}%` }} 
+                    />
+                  ))}
+                </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-app-bg text-text-light font-poppins relative overscroll-none">
-
-      {/* Sidebar Pane */}
       <motion.div
         className="h-full shrink-0 z-10 border-white/5 bg-app-bg max-w-full"
         initial={false}
@@ -46,7 +104,6 @@ export default function Home() {
         />
       </motion.div>
 
-      {/* Main Content Pane (Editor) */}
       <AnimatePresence>
         {activeNoteId && (
           <motion.div

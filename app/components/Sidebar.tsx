@@ -3,7 +3,30 @@
 import { motion } from "framer-motion";
 import { Note } from "../lib/data";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+function SkeletonContent({ note }: { note: Note }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Title skeleton */}
+      {note.title && <div className="skeleton-line h-4 w-3/5" />}
+      {/* Body skeletons */}
+      {note.listItems ? (
+        <div className="flex flex-col gap-2 mt-1">
+          {note.listItems.slice(0, 8).map((_, i) => (
+            <div key={i} className="skeleton-line h-6 rounded-full" style={{ width: `${70 + Math.sin(i * 2.5) * 20}%` }} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5 mt-1">
+          {Array.from({ length: Math.min(Math.floor((note.paragraphs?.join(' ').length ?? 0) / 40) + 1, 6) }).map((_, i, arr) => (
+            <div key={i} className="skeleton-line h-3" style={{ width: i === arr.length - 1 ? '45%' : `${85 + Math.sin(i * 3) * 10}%` }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Sidebar({ 
   isFullScreen = false,
@@ -20,8 +43,24 @@ export default function Sidebar({
     
   const [cols, setCols] = useState(2); // Default to 2 for mobile-first hydration
   const hasAnimated = useRef(false);
+  const revealedCards = useRef<Set<string>>(new Set());
+  const [, forceUpdate] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const handleCardAnimated = useCallback((id: string) => {
+    if (!revealedCards.current.has(id)) {
+      revealedCards.current.add(id);
+      forceUpdate(c => c + 1);
+    }
+    hasAnimated.current = true;
+  }, []);
 
   useEffect(() => {
+    setIsTransitioning(true);
+    const timer = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 500);
+
     const updateCols = () => {
       if (!isFullScreen) {
         setCols(2);
@@ -34,7 +73,10 @@ export default function Sidebar({
     
     updateCols();
     window.addEventListener('resize', updateCols);
-    return () => window.removeEventListener('resize', updateCols);
+    return () => {
+      window.removeEventListener('resize', updateCols);
+      clearTimeout(timer);
+    };
   }, [isFullScreen]);
 
   // Distribute notes horizontally across the columns
@@ -77,51 +119,60 @@ export default function Sidebar({
       <div className="flex items-start w-full gap-4 md:gap-6 pb-24">
         {columnData.map((colNotes, colIndex) => (
           <div key={colIndex} className="flex-1 flex flex-col gap-4 md:gap-6 min-w-0">
-            {colNotes.map((note, noteIndex) => (
-              <motion.button 
-                key={note.id} 
-                initial={hasAnimated.current ? false : { opacity: 0, y: 60, scale: 0.85, rotate: -2 }}
-                animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-                transition={{ 
-                  type: "spring", 
-                  stiffness: 200, 
-                  damping: 20, 
-                  delay: hasAnimated.current ? 0 : 0.15 + (colIndex * 0.1) + (noteIndex * 0.08)
-                }}
-                onAnimationComplete={() => { hasAnimated.current = true; }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onNoteSelect?.(note.id)} 
-                className="block text-left w-full outline-none focus:ring-2 focus:ring-white/50 rounded-2xl"
-              >
-                <article className={`${note.color} rounded-2xl p-4 text-text-dark h-fit cursor-pointer text-left w-full flex flex-col`}>
-                  {note.title && <h3 className="font-bold text-base leading-tight mb-2">{note.title}</h3>}
-                  {note.listItems ? (
-                    <ul className="space-y-2 flex flex-col justify-start">
-                      {note.listItems.slice(0, 8).map(item => (
-                        <li key={item.id} className="flex items-center gap-2 bg-black/5 rounded-full px-2 py-1 min-w-0">
-                          <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center relative shrink-0">
-                            {item.completed && <div className="w-2 h-2 bg-black rounded-full absolute"></div>}
-                          </div>
-                          <span className="text-xs font-medium truncate">{item.text}</span>
-                        </li>
-                      ))}
-                      {note.listItems.length > 8 && (
-                        <li className="text-xs font-bold text-black/40 pl-2 pt-1">+{note.listItems.length - 8} more items</li>
-                      )}
-                    </ul>
-                  ) : note.paragraphs && !note.title && note.paragraphs.join(' ').length < 120 ? (
-                    <p className="font-bold text-base leading-tight">
-                      {note.paragraphs.join(' ')}
-                    </p>
-                  ) : (
-                    <p className="text-text-dark/80 text-xs leading-relaxed line-clamp-[10]">
-                      {note.paragraphs && note.paragraphs.join(' ')}
-                    </p>
-                  )}
-                </article>
-              </motion.button>
-            ))}
+            {colNotes.map((note, noteIndex) => {
+              const isRevealed = (hasAnimated.current || revealedCards.current.has(note.id)) && !isTransitioning;
+              return (
+                <motion.button 
+                  key={note.id} 
+                  initial={hasAnimated.current ? false : { opacity: 0, y: 60, scale: 0.85, rotate: -2 }}
+                  animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 200, 
+                    damping: 20, 
+                    delay: hasAnimated.current ? 0 : 0.15 + (colIndex * 0.1) + (noteIndex * 0.08)
+                  }}
+                  onAnimationComplete={() => handleCardAnimated(note.id)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onNoteSelect?.(note.id)} 
+                  className="block text-left w-full outline-none focus:ring-2 focus:ring-white/50 rounded-2xl"
+                >
+                  <article className={`${note.color} rounded-2xl p-4 text-text-dark h-fit cursor-pointer text-left w-full flex flex-col`}>
+                    {isRevealed ? (
+                      <>
+                        {note.title && <h3 className="font-bold text-base leading-tight mb-2">{note.title}</h3>}
+                        {note.listItems ? (
+                          <ul className="space-y-2 flex flex-col justify-start">
+                            {note.listItems.slice(0, 8).map(item => (
+                              <li key={item.id} className="flex items-center gap-2 bg-black/5 rounded-full px-2 py-1 min-w-0">
+                                <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center relative shrink-0">
+                                  {item.completed && <div className="w-2 h-2 bg-black rounded-full absolute"></div>}
+                                </div>
+                                <span className="text-xs font-medium truncate">{item.text}</span>
+                              </li>
+                            ))}
+                            {note.listItems.length > 8 && (
+                              <li className="text-xs font-bold text-black/40 pl-2 pt-1">+{note.listItems.length - 8} more items</li>
+                            )}
+                          </ul>
+                        ) : note.paragraphs && !note.title && note.paragraphs.join(' ').length < 120 ? (
+                          <p className="font-bold text-base leading-tight">
+                            {note.paragraphs.join(' ')}
+                          </p>
+                        ) : (
+                          <p className="text-text-dark/80 text-sm leading-relaxed line-clamp-[10]">
+                            {note.paragraphs && note.paragraphs.join(' ')}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <SkeletonContent note={note} />
+                    )}
+                  </article>
+                </motion.button>
+              );
+            })}
           </div>
         ))}
       </div>

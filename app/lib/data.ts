@@ -293,7 +293,7 @@ export const dummyNotes: Note[] = [
     title: "",
     color: "bg-card-blue",
     paragraphs: [
-      "This is a random note."
+      "This is a random note ."
     ]
   }
 ];
@@ -303,6 +303,6 @@ export async function fetchNotes(): Promise<Note[]> {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(dummyNotes);
-    }, 500);
+    }, 10000);
   });
 }
