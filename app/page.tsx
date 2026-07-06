@@ -3,41 +3,203 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "./components/Sidebar";
 import NoteEditor from "./components/NoteEditor";
-import { Note, fetchNotes } from "./lib/data";
+import { Note } from "./lib/data";
 
 export default function Home() {
+  const [currentUser, setCurrentUser] = useState<{ username: string | null; email?: string; avatarUrl?: string } | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [notesBackup, setNotesBackup] = useState<Note[] | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authUsername, setAuthUsername] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+
+  const [newOauthUsername, setNewOauthUsername] = useState("");
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  const [oauthSubmitting, setOauthSubmitting] = useState(false);
 
   useEffect(() => {
-    async function loadNotes() {
-      const data = await fetchNotes();
-      setNotes(data);
-      setLoading(false);
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me");
+        const data = await res.json();
+        if (data.user) {
+          setCurrentUser(data.user);
+          const notesRes = await fetch("/api/notes");
+          const notesData = await notesRes.json();
+          if (Array.isArray(notesData)) {
+            setNotes(notesData);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setCheckingAuth(false);
+        setLoading(false);
+      }
     }
-    loadNotes();
+    checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => {
+        setShowToast(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast]);
 
   const activeNote =
     activeNoteId === "new" ? null : notes.find((n) => n.id === activeNoteId);
   const bgColor = activeNote?.color || "bg-new-note-bg";
 
-  const handleNoteDelete = (id: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSubmitting(true);
+    
+    const endpoint = isSignUp ? "/api/auth/register" : "/api/auth/login";
+    
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: authUsername, password: authPassword })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        if (isSignUp) {
+          setIsSignUp(false);
+          setAuthPassword("");
+          setAuthError("Registration successful! Please login.");
+        } else {
+          const meRes = await fetch("/api/auth/me");
+          const meData = await meRes.json();
+          if (meData.user) {
+            setCurrentUser(meData.user);
+            const notesRes = await fetch("/api/notes");
+            const notesData = await notesRes.json();
+            if (Array.isArray(notesData)) {
+              setNotes(notesData);
+            }
+          }
+        }
+      } else {
+        setAuthError(data.error || "An error occurred");
+      }
+    } catch (err) {
+      setAuthError("Network connection error");
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setCurrentUser(null);
+      setNotes([]);
+      setActiveNoteId(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    window.location.href = "/api/auth/google/signin";
+  };
+
+  const handleUndo = async () => {
+    if (!notesBackup) return;
+    
+    const restoredNotes = notesBackup.filter(
+      backupNote => !notes.some(n => n.id === backupNote.id)
+    );
+    
+    setNotes(notesBackup);
+    setShowToast(false);
+    setNotesBackup(null);
+    
+    for (const note of restoredNotes) {
+      await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(note)
+      });
+    }
+  };
+
+  const handleNoteUpdate = async (updated: Note) => {
+    setNotes(prev => {
+      const exists = prev.some(n => n.id === updated.id);
+      if (exists) {
+        return prev.map(n => n.id === updated.id ? updated : n);
+      } else {
+        return [...prev, updated];
+      }
+    });
+    if (activeNoteId === "new") {
+      setActiveNoteId(updated.id);
+    }
+    
+    await fetch("/api/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updated)
+    });
+  };
+
+  const handleNoteDelete = async (id: string) => {
+    setNotesBackup(notes);
+    setNotes(prev => prev.filter(n => n.id !== id));
+    setToastMessage("Note moved to bin");
+    setShowToast(true);
     if (activeNoteId === id) {
       setActiveNoteId(null);
     }
+    
+    await fetch("/api/notes", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [id] })
+    });
   };
 
-  const handleNotesBulkDelete = (ids: string[]) => {
-    setNotes((prev) => prev.filter((n) => !ids.includes(n.id)));
+  const handleNotesBulkDelete = async (ids: string[]) => {
+    setNotesBackup(notes);
+    setNotes(prev => prev.filter(n => !ids.includes(n.id)));
+    setToastMessage(ids.length === 1 ? "Note moved to bin" : `${ids.length} notes moved to bin`);
+    setShowToast(true);
     if (activeNoteId && ids.includes(activeNoteId)) {
       setActiveNoteId(null);
     }
+    
+    await fetch("/api/notes", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids })
+    });
   };
 
-  if (loading) {
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen w-full bg-[#0a0a0a] flex items-center justify-center font-poppins">
+        <i className="fa-solid fa-circle-notch animate-spin text-white text-3xl opacity-50"></i>
+      </div>
+    );
+  }
+
+  if (currentUser && loading) {
     const skeletonColors = [
       "bg-card-coral",
       "bg-card-yellow",
@@ -135,6 +297,179 @@ export default function Home() {
     );
   }
 
+  if (currentUser && !currentUser.username) {
+    const handleOauthUsernameSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setOauthError(null);
+      setOauthSubmitting(true);
+      try {
+        const res = await fetch("/api/auth/setup-username", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: newOauthUsername })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setCurrentUser(prev => prev ? { ...prev, username: newOauthUsername } : null);
+          const notesRes = await fetch("/api/notes");
+          const notesData = await notesRes.json();
+          if (Array.isArray(notesData)) {
+            setNotes(notesData);
+          }
+        } else {
+          setOauthError(data.error || "An error occurred");
+        }
+      } catch (err) {
+        setOauthError("Network connection error");
+      } finally {
+        setOauthSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen w-full bg-[#0a0a0a] flex items-center justify-center p-4 relative overflow-hidden font-poppins">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bg-neutral-900/60 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl z-10 flex flex-col gap-6"
+        >
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-extrabold text-white text-center">
+              Choose Username
+            </h1>
+            <p className="text-gray-400 text-xs text-center font-medium">
+              Choose a unique username to complete your Google account registration
+            </p>
+          </div>
+
+          <form onSubmit={handleOauthUsernameSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-gray-400 text-xs font-bold uppercase tracking-wider pl-1">Username</label>
+              <input 
+                type="text"
+                required
+                value={newOauthUsername}
+                onChange={(e) => setNewOauthUsername(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                placeholder="Choose a username"
+              />
+            </div>
+
+            {oauthError && (
+              <p className="text-red-400 text-xs font-bold text-center pl-1">
+                {oauthError}
+              </p>
+            )}
+
+            <button 
+              type="submit"
+              disabled={oauthSubmitting}
+              className="w-full py-3 bg-white hover:bg-neutral-200 active:scale-[0.98] text-black font-bold rounded-xl transition-all shadow-lg text-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {oauthSubmitting ? (
+                <i className="fa-solid fa-circle-notch animate-spin text-base"></i>
+              ) : (
+                "Save & Continue"
+              )}
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen w-full bg-[#0a0a0a] flex items-center justify-center p-4 relative overflow-hidden font-poppins">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bg-neutral-900/60 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl z-10 flex flex-col gap-6"
+        >
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-extrabold text-white text-center">
+              keeps
+            </h1>
+            <p className="text-gray-400 text-xs text-center font-medium">
+              {isSignUp ? "Create an account to start taking notes" : "Sign in to access your notes"}
+            </p>
+          </div>
+
+          <form onSubmit={handleAuthSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-gray-400 text-xs font-bold uppercase tracking-wider pl-1">Username</label>
+              <input 
+                type="text"
+                required
+                value={authUsername}
+                onChange={(e) => setAuthUsername(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                placeholder="Enter username"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-gray-400 text-xs font-bold uppercase tracking-wider pl-1">Password</label>
+              <input 
+                type="password"
+                required
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                placeholder="••••••••"
+              />
+            </div>
+
+            {authError && (
+              <p className="text-red-400 text-xs font-bold text-center pl-1">
+                {authError}
+              </p>
+            )}
+
+            <button 
+              type="submit"
+              disabled={authSubmitting}
+              className="w-full py-3 bg-white hover:bg-neutral-200 active:scale-[0.98] text-black font-bold rounded-xl transition-all shadow-lg text-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {authSubmitting ? (
+                <i className="fa-solid fa-circle-notch animate-spin text-base"></i>
+              ) : (
+                isSignUp ? "Sign Up" : "Log In"
+              )}
+            </button>
+          </form>
+
+          <div className="flex items-center my-1">
+            <div className="flex-1 h-[1px] bg-white/10"></div>
+            <span className="px-3 text-xs text-gray-500 font-bold uppercase">or</span>
+            <div className="flex-1 h-[1px] bg-white/10"></div>
+          </div>
+
+          <button 
+            onClick={handleGoogleSignIn}
+            className="w-full py-3 bg-white/10 border border-white/10 hover:bg-white/15 active:scale-[0.98] text-white font-semibold rounded-xl transition-all text-sm flex items-center justify-center gap-3 cursor-pointer"
+          >
+            <i className="fa-brands fa-google"></i>
+            <span>Continue with Google</span>
+          </button>
+
+          <p className="text-center text-xs text-gray-400 font-medium">
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}
+            <button 
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setAuthError(null);
+              }}
+              className="text-cyan-400 font-bold hover:underline cursor-pointer ml-1"
+            >
+              {isSignUp ? "Log In" : "Sign Up"}
+            </button>
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-app-bg text-text-light font-poppins relative overscroll-none">
       <motion.div
@@ -149,6 +484,8 @@ export default function Home() {
         <Sidebar
           isFullScreen={!activeNoteId}
           notes={notes}
+          currentUser={currentUser}
+          onLogout={handleLogout}
           onNoteSelect={(id) => setActiveNoteId(id)}
           onNoteDelete={handleNoteDelete}
           onNotesBulkDelete={handleNotesBulkDelete}
@@ -168,8 +505,29 @@ export default function Home() {
               <NoteEditor
                 note={activeNote}
                 onClose={() => setActiveNoteId(null)}
+                onUpdateNote={handleNoteUpdate}
               />
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-neutral-900/95 backdrop-blur-md border border-white/10 px-6 py-3 rounded-full flex items-center justify-between gap-6 shadow-2xl text-white select-none min-w-[280px]"
+          >
+            <span className="text-sm font-medium">{toastMessage}</span>
+            <button
+              onClick={handleUndo}
+              className="text-yellow-400 font-bold hover:text-yellow-300 transition-colors cursor-pointer text-sm"
+            >
+              Undo
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

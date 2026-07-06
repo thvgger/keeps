@@ -52,12 +52,16 @@ function SkeletonContent({ note }: { note: Note }) {
 export default function Sidebar({
   isFullScreen = false,
   notes = [],
+  currentUser = null,
+  onLogout,
   onNoteSelect,
   onNoteDelete,
   onNotesBulkDelete,
 }: {
   isFullScreen?: boolean;
   notes?: Note[];
+  currentUser?: { username: string | null; email?: string; avatarUrl?: string } | null;
+  onLogout?: () => void;
   onNoteSelect?: (id: string) => void;
   onNoteDelete?: (id: string) => void;
   onNotesBulkDelete?: (ids: string[]) => void;
@@ -176,10 +180,29 @@ export default function Sidebar({
               </svg>
             </button>
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-medium tracking-wide">Hi, thvgger</h1>
-              <div className="w-12 h-12 rounded-full bg-btn-dark border-2 border-white/10 flex items-center justify-center text-gray-400 shadow-sm shrink-0">
-                <span className="text-sm font-bold">TH</span>
-              </div>
+              <h1 className="text-xl font-medium tracking-wide">Hi, {currentUser?.username || "Guest"}</h1>
+              {currentUser?.avatarUrl ? (
+                <img 
+                  src={currentUser.avatarUrl} 
+                  alt="Avatar" 
+                  className="w-12 h-12 rounded-full border-2 border-white/10 shadow-sm shrink-0" 
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-btn-dark border-2 border-white/10 flex items-center justify-center text-gray-400 shadow-sm shrink-0">
+                  <span className="text-sm font-bold">
+                    {(currentUser?.username?.slice(0, 2) || "US").toUpperCase()}
+                  </span>
+                </div>
+              )}
+              {onLogout && (
+                <button 
+                  onClick={onLogout} 
+                  title="Log Out" 
+                  className="w-12 h-12 bg-btn-dark rounded-full flex items-center justify-center hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors shrink-0 cursor-pointer"
+                >
+                  <i className="fa-solid fa-right-from-bracket text-base"></i>
+                </button>
+              )}
             </div>
           </header>
 
