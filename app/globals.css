@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Colors from Home */
+  --color-app-bg: #0f0f0f;
+  --color-card-coral: #ffad99;
+  --color-card-yellow: #ffffb3;
+  --color-card-blue: #cceeff;
+  --color-card-purple: #e6ccff;
+  --color-card-green: #d1f5d3;
+  --color-card-pink: #ffcce6;
+  --color-btn-dark: #2a2a2a;
+  --color-text-dark: #1a1a1a;
+  --color-text-light: #ffffff;
+  --color-text-muted: #a0a0a0;
+
+  /* Colors from New Note */
+  --color-new-note-bg: #d1f0ec;
+
+  --font-poppins: var(--font-poppins);
+  --font-inter: var(--font-inter);
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+body {
+  /* Default font can be Poppins based on the home mockup */
+  font-family: var(--font-poppins), sans-serif;
+  touch-action: manipulation;
+}

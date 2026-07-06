@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>New Note</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+<style data-purpose="custom-fonts">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #d1f0ec; /* Light blue/mint background */
+    }
+  </style>
+</head>
+<body class="min-h-screen text-gray-900 flex justify-center">
+<!-- BEGIN: Mobile Container -->
+<div class="w-full max-w-[400px] h-screen bg-[#d1f0ec] relative overflow-hidden flex flex-col shadow-2xl rounded-[40px] mt-4 border-8 border-white/20">
+<!-- BEGIN: Top Navigation -->
+<header class="flex justify-between items-center p-6 pt-10">
+<button aria-label="Go back" class="w-12 h-12 bg-black/5 rounded-full flex items-center justify-center hover:bg-black/10 transition-colors">
+<i class="fa-solid fa-chevron-left text-lg"></i>
+</button>
+<!-- Removed hamburger menu as requested -->
+</header>
+<!-- END: Top Navigation -->
+<!-- BEGIN: Main Content Area -->
+<main class="flex-1 overflow-y-auto px-6 pb-32 no-scrollbar">
+<style data-purpose="scrollbar-hide">
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      </style>
+<!-- Note Title -->
+<h1 class="text-[32px] leading-tight font-bold mb-6 tracking-tight">
+        Tax payment<br/>before the end of<br/>march
+      </h1>
+<!-- Note Description -->
+<p class="text-[15px] leading-relaxed mb-6 font-medium text-gray-800">
+        This is a reminder note, so as not to forget to pay taxes before the end of march, Don't miss it. you could be fined!
+      </p>
+<p class="text-[15px] leading-relaxed mb-8 font-medium text-gray-800">
+        List of assets that must be reported to the government, whether in the form of cash savings. that is mandatory things we have filling the tax payment to the government.
+      </p>
+<!-- Numbered List -->
+<ol class="list-decimal pl-5 space-y-3 text-[15px] font-medium text-gray-800 mb-10">
+<li class="pl-1">Audi RS7 sportback 5 seater</li>
+<li class="pl-1">Harley davidson street guide</li>
+<li class="pl-1">Lamborghini aventador</li>
+<li class="pl-1">Shopping of the downtown mall</li>
+<li class="pl-1">GST filling of the iPhone 14 pro max</li>
+</ol>
+<!-- Interactive Prompt -->
+<div class="flex items-center text-gray-400 font-medium cursor-text group relative">
+<div class="absolute left-0 top-0 h-full w-[2px] bg-black"></div>
+<div class="absolute left-[-3px] top-[-3px] h-[8px] w-[8px] rounded-full bg-black"></div>
+<span class="ml-4 text-sm">Tap here to continue</span>
+</div>
+</main>
+<!-- END: Main Content Area -->
+<!-- BEGIN: Bottom Action Bar -->
+<div class="absolute bottom-6 left-6 right-6">
+<div class="bg-[#c2e8e4] rounded-[30px] p-2 flex items-center justify-between shadow-sm">
+<!-- Tools Container -->
+<div class="flex gap-2">
+<button aria-label="Camera" class="w-12 h-12 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors">
+<i class="fa-solid fa-camera text-lg"></i>
+</button>
+<button aria-label="Edit" class="w-12 h-12 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors">
+<i class="fa-solid fa-pen text-lg"></i>
+</button>
+<button aria-label="Attachment" class="w-12 h-12 bg-black/5 rounded-full flex items-center justify-center hover:bg-black/10 transition-colors">
+<i class="fa-solid fa-paperclip text-lg"></i>
+</button>
+<button aria-label="List" class="w-12 h-12 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors">
+<i class="fa-solid fa-list text-lg"></i>
+</button>
+</div>
+<!-- Add Button -->
+<button aria-label="Add new item" class="w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-colors">
+<i class="fa-solid fa-plus text-xl"></i>
+</button>
+</div>
+</div>
+<!-- END: Bottom Action Bar -->
+</div>
+<!-- END: Mobile Container -->
+</body></html>

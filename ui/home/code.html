@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Note-taking App UI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style data-purpose="custom-fonts">
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'app-bg': '#0f0f0f',
+            'card-coral': '#ffad99',
+            'card-yellow': '#ffffb3',
+            'card-blue': '#cceeff',
+            'btn-dark': '#2a2a2a',
+            'text-dark': '#1a1a1a',
+            'text-light': '#ffffff',
+            'text-muted': '#a0a0a0',
+          },
+          borderRadius: {
+            'xl': '1.5rem',
+            '2xl': '2rem',
+          }
+        }
+      }
+    }
+  </script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" data-snapdom="injected-import"></head>
+<body class="bg-app-bg text-text-light min-h-screen relative p-6 max-w-md mx-auto overflow-x-hidden">
+<!-- BEGIN: HeaderSection -->
+<header class="flex justify-between items-center mb-8 pt-4">
+<div class="flex items-center gap-3">
+<img alt="Profile avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white/10" data-purpose="profile-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCS4fuQmtbecZTSwRhgIOwE41s7ByN7u616d4kJMpe82Loa2L4EdrhTS8nAZittw4sXsfN52Cf1L2kKiEt8Orct8DBNsjNQ3doZH_aeZ2dR_GMk2d47RVowZFQL4-ORZZPd-n-fpM_TyK7CEvOh2yrh3aZ3Ot2XQUE5agsTTiSHOu6lVynMcd0GFFztP0jgWoybImfHJs_72_kx9rC-eKxGHIALY65C2PQovlwHRSQ8Bopz5rYWoNXMbg">
+<h1 class="text-xl font-medium tracking-wide">Hi, thvgger</h1>
+</div>
+<button class="w-12 h-12 bg-btn-dark rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors" data-purpose="menu-button">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</header>
+<!-- END: HeaderSection -->
+<!-- BEGIN: PageTitle -->
+<section class="mb-6">
+<h2 class="text-5xl tracking-tight font-medium" style="font-family: Poppins, sans-serif; letter-spacing: -0.02em;">My Notes</h2>
+</section>
+<!-- END: PageTitle -->
+<!-- BEGIN: SearchBar -->
+<section class="mb-8">
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<svg aria-hidden="true" class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" fill-rule="evenodd"></path>
+</svg>
+</div>
+<input class="block w-full pl-11 pr-3 py-3 border-transparent rounded-full leading-5 bg-btn-dark text-gray-300 placeholder-gray-400 focus:outline-none focus:bg-gray-800 focus:ring-0 sm:text-sm transition-colors" data-purpose="search-input" placeholder="Search notes..." type="text">
+</div>
+</section>
+<!-- END: SearchBar -->
+<!-- BEGIN: NotesGrid -->
+<main class="grid grid-cols-2 gap-4 pb-24" data-purpose="notes-container">
+<!-- Note Card: Buy Honey -->
+<article class="bg-card-coral rounded-2xl p-4 flex flex-col justify-between overflow-hidden relative min-h-[160px]" data-purpose="note-card"><div class="z-10 relative"><h3 class="text-text-dark font-bold text-base leading-tight mb-1">Buy honey 100% original</h3><p class="text-text-dark/80 text-xs leading-snug">Buy the new brand honey for my family. here's the pic.</p></div></article>
+<!-- Note Card: Plan for today -->
+<article class="bg-card-yellow rounded-2xl p-4 text-text-dark flex flex-col min-h-[160px]" data-purpose="note-card"><h3 class="font-bold text-base leading-tight mb-2">Plan for the today</h3><ul class="space-y-2 flex-1 flex flex-col justify-center" data-purpose="checklist"><li class="flex items-center gap-2 bg-yellow-100/50 rounded-full px-2 py-1"><div class="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center relative"><div class="w-2 h-2 bg-black rounded-full absolute"></div></div><span class="text-xs font-medium">Buy food</span></li><li class="flex items-center gap-2 bg-yellow-100/50 rounded-full px-2 py-1"><div class="w-4 h-4 rounded-full border-2 border-black"></div><span class="text-xs font-medium">GYN</span></li><li class="flex items-center gap-2 bg-yellow-100/50 rounded-full px-2 py-1"><div class="w-4 h-4 rounded-full border-2 border-black"></div><span class="text-xs font-medium">Meeting</span></li></ul></article>
+<!-- Note Card: Tax Payment -->
+<article class="bg-card-blue rounded-2xl p-4 text-text-dark min-h-[160px]" data-purpose="note-card"><h3 class="font-bold text-base leading-tight mb-2">Tax payment before the end of march</h3><p class="text-text-dark/80 text-xs leading-relaxed mb-1">This is a reminder note. so as not to forget to pay taxes before the end of march.</p><p class="text-text-dark/80 text-xs leading-relaxed">List of assets that must be reported.</p></article>
+</main>
+<!-- END: NotesGrid -->
+<!-- BEGIN: FloatingActionButton -->
+<button class="fixed bottom-8 right-8 w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 hover:scale-105 transition-transform z-50 bg-white" data-purpose="fab">
+<svg class="h-8 w-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- END: FloatingActionButton -->
+
+
+</body></html>
