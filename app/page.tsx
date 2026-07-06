@@ -19,72 +19,59 @@ export default function Home() {
     loadNotes();
   }, []);
 
-  const activeNote = activeNoteId === "new" ? null : notes.find(n => n.id === activeNoteId);
+  const activeNote =
+    activeNoteId === "new" ? null : notes.find((n) => n.id === activeNoteId);
   const bgColor = activeNote?.color || "bg-new-note-bg";
 
-  const [notesBackup, setNotesBackup] = useState<Note[] | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState(false);
-
-  useEffect(() => {
-    if (showToast) {
-      const timer = setTimeout(() => {
-        setShowToast(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [showToast]);
-
-  const handleUndo = () => {
-    if (notesBackup) {
-      setNotes(notesBackup);
-    }
-    setShowToast(false);
-    setNotesBackup(null);
-  };
-
-  const handleNoteUpdate = (updated: Note) => {
-    setNotes(prev => {
-      const exists = prev.some(n => n.id === updated.id);
-      if (exists) {
-        return prev.map(n => n.id === updated.id ? updated : n);
-      } else {
-        return [...prev, updated];
-      }
-    });
-    if (activeNoteId === "new") {
-      setActiveNoteId(updated.id);
-    }
-  };
-
   const handleNoteDelete = (id: string) => {
-    setNotesBackup(notes);
-    setNotes(prev => prev.filter(n => n.id !== id));
-    setToastMessage("Note moved to bin");
-    setShowToast(true);
+    setNotes((prev) => prev.filter((n) => n.id !== id));
     if (activeNoteId === id) {
       setActiveNoteId(null);
     }
   };
 
   const handleNotesBulkDelete = (ids: string[]) => {
-    setNotesBackup(notes);
-    setNotes(prev => prev.filter(n => !ids.includes(n.id)));
-    setToastMessage(ids.length === 1 ? "Note moved to bin" : `${ids.length} notes moved to bin`);
-    setShowToast(true);
+    setNotes((prev) => prev.filter((n) => !ids.includes(n.id)));
     if (activeNoteId && ids.includes(activeNoteId)) {
       setActiveNoteId(null);
     }
   };
 
   if (loading) {
-    const skeletonColors = ['bg-card-coral', 'bg-card-yellow', 'bg-card-blue', 'bg-card-purple', 'bg-card-green', 'bg-card-pink'];
+    const skeletonColors = [
+      "bg-card-coral",
+      "bg-card-yellow",
+      "bg-card-blue",
+      "bg-card-purple",
+      "bg-card-green",
+      "bg-card-pink",
+    ];
     const skeletonCols = [
-      [{ h: 160, color: 0, lines: 4 }, { h: 200, color: 3, lines: 6 }, { h: 130, color: 1, lines: 3 }],
-      [{ h: 190, color: 2, lines: 5 }, { h: 140, color: 4, lines: 3 }, { h: 170, color: 0, lines: 4 }],
-      [{ h: 150, color: 5, lines: 4 }, { h: 180, color: 1, lines: 5 }, { h: 140, color: 2, lines: 3 }],
-      [{ h: 180, color: 4, lines: 5 }, { h: 130, color: 3, lines: 3 }, { h: 160, color: 5, lines: 4 }],
-      [{ h: 140, color: 1, lines: 3 }, { h: 170, color: 0, lines: 5 }, { h: 150, color: 2, lines: 4 }],
+      [
+        { h: 160, color: 0, lines: 4 },
+        { h: 200, color: 3, lines: 6 },
+        { h: 130, color: 1, lines: 3 },
+      ],
+      [
+        { h: 190, color: 2, lines: 5 },
+        { h: 140, color: 4, lines: 3 },
+        { h: 170, color: 0, lines: 4 },
+      ],
+      [
+        { h: 150, color: 5, lines: 4 },
+        { h: 180, color: 1, lines: 5 },
+        { h: 140, color: 2, lines: 3 },
+      ],
+      [
+        { h: 180, color: 4, lines: 5 },
+        { h: 130, color: 3, lines: 3 },
+        { h: 160, color: 5, lines: 4 },
+      ],
+      [
+        { h: 140, color: 1, lines: 3 },
+        { h: 170, color: 0, lines: 5 },
+        { h: 150, color: 2, lines: 4 },
+      ],
     ];
 
     return (
@@ -108,30 +95,37 @@ export default function Home() {
 
           <div className="flex items-start w-full gap-4 md:gap-6">
             {skeletonCols.map((col, colIndex) => (
-              <div 
-                key={colIndex} 
+              <div
+                key={colIndex}
                 className={`flex-1 flex-col gap-4 md:gap-6 min-w-0 ${
-                  colIndex < 2 ? 'flex' : colIndex < 4 ? 'hidden md:flex' : 'hidden lg:flex'
+                  colIndex < 2
+                    ? "flex"
+                    : colIndex < 4
+                      ? "hidden md:flex"
+                      : "hidden lg:flex"
                 }`}
               >
                 {col.map((card, cardIndex) => (
-                <div 
-                  key={cardIndex} 
-                  className="rounded-2xl p-4 flex flex-col gap-2 opacity-60 skeleton-card-cycle"
-                  style={{ 
-                    height: `${card.h}px`,
-                    animationDelay: `${-(colIndex * 1.6 + cardIndex * 2.1)}s`
-                  }}
-                >
-                  <div className="skeleton-line h-4 w-3/5 mb-1" />
-                  {Array.from({ length: card.lines }).map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="skeleton-line h-3" 
-                      style={{ width: i === card.lines - 1 ? '40%' : `${90 - i * 8}%` }} 
-                    />
-                  ))}
-                </div>
+                  <div
+                    key={cardIndex}
+                    className="rounded-2xl p-4 flex flex-col gap-2 opacity-60 skeleton-card-cycle"
+                    style={{
+                      height: `${card.h}px`,
+                      animationDelay: `${-(colIndex * 1.6 + cardIndex * 2.1)}s`,
+                    }}
+                  >
+                    <div className="skeleton-line h-4 w-3/5 mb-1" />
+                    {Array.from({ length: card.lines }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="skeleton-line h-3"
+                        style={{
+                          width:
+                            i === card.lines - 1 ? "40%" : `${90 - i * 8}%`,
+                        }}
+                      />
+                    ))}
+                  </div>
                 ))}
               </div>
             ))}
@@ -152,10 +146,10 @@ export default function Home() {
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.5 }}
       >
-        <Sidebar 
-          isFullScreen={!activeNoteId} 
+        <Sidebar
+          isFullScreen={!activeNoteId}
           notes={notes}
-          onNoteSelect={(id) => setActiveNoteId(id)} 
+          onNoteSelect={(id) => setActiveNoteId(id)}
           onNoteDelete={handleNoteDelete}
           onNotesBulkDelete={handleNotesBulkDelete}
         />
@@ -171,28 +165,11 @@ export default function Home() {
             className={`absolute inset-0 md:relative md:inset-auto md:flex-1 h-full ${bgColor} overflow-hidden flex justify-center z-20`}
           >
             <div className="w-full h-full">
-              <NoteEditor note={activeNote} onClose={() => setActiveNoteId(null)} onUpdateNote={handleNoteUpdate} />
+              <NoteEditor
+                note={activeNote}
+                onClose={() => setActiveNoteId(null)}
+              />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showToast && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-neutral-900/95 backdrop-blur-md border border-white/10 px-6 py-3 rounded-full flex items-center justify-between gap-6 shadow-2xl text-white select-none min-w-[280px]"
-          >
-            <span className="text-sm font-medium">{toastMessage}</span>
-            <button
-              onClick={handleUndo}
-              className="text-yellow-400 font-bold hover:text-yellow-300 transition-colors cursor-pointer text-sm"
-            >
-              Undo
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
