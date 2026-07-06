@@ -22,9 +22,57 @@ export default function Home() {
   const activeNote = activeNoteId === "new" ? null : notes.find(n => n.id === activeNoteId);
   const bgColor = activeNote?.color || "bg-new-note-bg";
 
+  const [notesBackup, setNotesBackup] = useState<Note[] | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => {
+        setShowToast(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast]);
+
+  const handleUndo = () => {
+    if (notesBackup) {
+      setNotes(notesBackup);
+    }
+    setShowToast(false);
+    setNotesBackup(null);
+  };
+
+  const handleNoteUpdate = (updated: Note) => {
+    setNotes(prev => {
+      const exists = prev.some(n => n.id === updated.id);
+      if (exists) {
+        return prev.map(n => n.id === updated.id ? updated : n);
+      } else {
+        return [...prev, updated];
+      }
+    });
+    if (activeNoteId === "new") {
+      setActiveNoteId(updated.id);
+    }
+  };
+
   const handleNoteDelete = (id: string) => {
+    setNotesBackup(notes);
     setNotes(prev => prev.filter(n => n.id !== id));
+    setToastMessage("Note moved to bin");
+    setShowToast(true);
     if (activeNoteId === id) {
+      setActiveNoteId(null);
+    }
+  };
+
+  const handleNotesBulkDelete = (ids: string[]) => {
+    setNotesBackup(notes);
+    setNotes(prev => prev.filter(n => !ids.includes(n.id)));
+    setToastMessage(ids.length === 1 ? "Note moved to bin" : `${ids.length} notes moved to bin`);
+    setShowToast(true);
+    if (activeNoteId && ids.includes(activeNoteId)) {
       setActiveNoteId(null);
     }
   };
@@ -109,6 +157,7 @@ export default function Home() {
           notes={notes}
           onNoteSelect={(id) => setActiveNoteId(id)} 
           onNoteDelete={handleNoteDelete}
+          onNotesBulkDelete={handleNotesBulkDelete}
         />
       </motion.div>
 
@@ -122,8 +171,28 @@ export default function Home() {
             className={`absolute inset-0 md:relative md:inset-auto md:flex-1 h-full ${bgColor} overflow-hidden flex justify-center z-20`}
           >
             <div className="w-full h-full">
-              <NoteEditor note={activeNote} onClose={() => setActiveNoteId(null)} />
+              <NoteEditor note={activeNote} onClose={() => setActiveNoteId(null)} onUpdateNote={handleNoteUpdate} />
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-neutral-900/95 backdrop-blur-md border border-white/10 px-6 py-3 rounded-full flex items-center justify-between gap-6 shadow-2xl text-white select-none min-w-[280px]"
+          >
+            <span className="text-sm font-medium">{toastMessage}</span>
+            <button
+              onClick={handleUndo}
+              className="text-yellow-400 font-bold hover:text-yellow-300 transition-colors cursor-pointer text-sm"
+            >
+              Undo
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

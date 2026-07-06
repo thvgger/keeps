@@ -36,11 +36,12 @@ function ContextMenuContent({
   side = "right",
   sideOffset = 0,
   anchor,
+  collisionAvoidance = { side: "flip", align: "none" },
   ...props
 }: ContextMenuPrimitive.Popup.Props &
   Pick<
     ContextMenuPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset" | "anchor"
+    "align" | "alignOffset" | "side" | "sideOffset" | "anchor" | "collisionAvoidance"
   >) {
   return (
     <ContextMenuPrimitive.Portal>
@@ -51,6 +52,7 @@ function ContextMenuContent({
         side={side}
         sideOffset={sideOffset}
         anchor={anchor}
+        collisionAvoidance={collisionAvoidance}
       >
         <ContextMenuPrimitive.Popup
           data-slot="context-menu-content"

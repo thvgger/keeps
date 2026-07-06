@@ -6,6 +6,7 @@ export interface Note {
   listItems?: { id: string, text: string, completed?: boolean }[];
   orderedListItems?: string[];
   interactivePrompt?: string;
+  font?: string;
 }
 
 export const dummyNotes: Note[] = [
