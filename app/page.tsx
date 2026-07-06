@@ -22,6 +22,13 @@ export default function Home() {
   const activeNote = activeNoteId === "new" ? null : notes.find(n => n.id === activeNoteId);
   const bgColor = activeNote?.color || "bg-new-note-bg";
 
+  const handleNoteDelete = (id: string) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+    if (activeNoteId === id) {
+      setActiveNoteId(null);
+    }
+  };
+
   if (loading) {
     const skeletonColors = ['bg-card-coral', 'bg-card-yellow', 'bg-card-blue', 'bg-card-purple', 'bg-card-green', 'bg-card-pink'];
     const skeletonCols = [
@@ -101,6 +108,7 @@ export default function Home() {
           isFullScreen={!activeNoteId} 
           notes={notes}
           onNoteSelect={(id) => setActiveNoteId(id)} 
+          onNoteDelete={handleNoteDelete}
         />
       </motion.div>
 

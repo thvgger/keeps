@@ -303,6 +303,6 @@ export async function fetchNotes(): Promise<Note[]> {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(dummyNotes);
-    }, 10000);
+    }, 2000);
   });
 }
