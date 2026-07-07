@@ -80,8 +80,8 @@ export default function Sidebar({
   onNotesBulkDelete?: (ids: string[]) => void;
 }) {
   const containerClasses = isFullScreen
-    ? "bg-app-bg text-text-light h-full w-full relative p-6 md:p-12 overflow-y-auto flex flex-col font-poppins mx-auto max-w-[1200px] no-scrollbar"
-    : "bg-app-bg text-text-light min-h-screen md:min-h-0 h-full w-full relative p-6 overflow-y-auto flex flex-col font-poppins mx-auto md:mx-0 max-w-md md:max-w-none no-scrollbar";
+    ? "bg-app-bg text-text-light h-full w-full relative p-6 md:p-12 overflow-hidden flex flex-col font-poppins mx-auto max-w-[1200px]"
+    : "bg-app-bg text-text-light min-h-screen md:min-h-0 h-full w-full relative p-6 overflow-hidden flex flex-col font-poppins mx-auto md:mx-0 max-w-md md:max-w-none";
 
   const [cols, setCols] = useState(2); // Default to 2 for mobile-first hydration
   const hasAnimated = useRef(false);
@@ -253,8 +253,9 @@ export default function Sidebar({
             </div>
           </section>
 
-          <div className="flex items-start w-full gap-4 md:gap-6 pb-24">
-            {columnData.map((colNotes, colIndex) => (
+          <div className="flex-1 overflow-y-auto min-h-0 no-scrollbar pb-24">
+            <div className="flex items-start w-full gap-4 md:gap-6">
+              {columnData.map((colNotes, colIndex) => (
               <div
                 key={colIndex}
                 className="flex-1 flex flex-col gap-4 md:gap-6 min-w-0"
@@ -406,7 +407,8 @@ export default function Sidebar({
                   })}
                 </AnimatePresence>
               </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {!selectionMode && (

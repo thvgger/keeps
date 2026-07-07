@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "./components/Sidebar";
 import NoteEditor from "./components/NoteEditor";
@@ -95,7 +95,11 @@ export default function Home() {
     }
   }, [showToast]);
 
-  const [newNoteColor, setNewNoteColor] = useState("bg-card-coral");
+  const [newNoteColor, setNewNoteColor] = useState(() => {
+    const randomIndex = Math.floor(Math.random() * CARD_COLORS.length);
+    return CARD_COLORS[randomIndex];
+  });
+  const recentColorsRef = useRef<string[]>([newNoteColor]);
 
   const activeNote =
     activeNoteId === "new" ? null : notes.find((n) => n.id === activeNoteId);
@@ -528,8 +532,13 @@ export default function Home() {
           onLogout={handleLogout}
           onNoteSelect={(id) => {
             if (id === "new") {
-              const randomIndex = Math.floor(Math.random() * CARD_COLORS.length);
-              setNewNoteColor(CARD_COLORS[randomIndex]);
+              const available = CARD_COLORS.filter(c => !recentColorsRef.current.includes(c));
+              const chosen = available[Math.floor(Math.random() * available.length)] || CARD_COLORS[0];
+              recentColorsRef.current.push(chosen);
+              if (recentColorsRef.current.length > 4) {
+                recentColorsRef.current.shift();
+              }
+              setNewNoteColor(chosen);
             }
             setActiveNoteId(id);
           }}

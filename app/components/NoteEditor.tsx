@@ -63,7 +63,8 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
   const [fontFamily, setFontFamily] = useState(note?.font || "Inter");
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const noteIdRef = useRef<string | null>(note?.id || null);
+  const [isMobileToolbarOpen, setIsMobileToolbarOpen] = useState(false);
+  const noteIdRef = useRef<string | null>(null);
   
   const titleRef = useRef<HTMLHeadingElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -326,6 +327,155 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
 
   const activeFont = FONTS.find(f => f.name === fontFamily) || FONTS[0];
 
+  const renderToolbarContents = () => (
+    <>
+      <div className="relative" ref={colorRef}>
+        <button 
+          onMouseDown={(e) => { e.preventDefault(); setIsColorDropdownOpen(!isColorDropdownOpen); }}
+          className="px-3 py-1.5 rounded-full hover:bg-black/5 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+        >
+          <i className="fa-solid fa-palette text-[10px]"></i>
+          <span>Color</span>
+          <i className="fa-solid fa-chevron-down text-[10px]"></i>
+        </button>
+
+        <AnimatePresence>
+          {isColorDropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-full right-0 mt-2 w-40 bg-neutral-900/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl z-50 flex flex-col gap-2"
+            >
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider font-sans text-center">Card Color</span>
+              <div className="grid grid-cols-3 gap-2 justify-items-center">
+                {CARD_COLORS_META.map((c) => (
+                  <button
+                    key={c.className}
+                    onMouseDown={(e) => { e.preventDefault(); handleColorChange(c.className); }}
+                    className={`w-7 h-7 rounded-full border border-white/10 hover:scale-110 active:scale-95 transition-transform cursor-pointer ${c.bgPreview}`}
+                    title={c.name}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="w-[1px] h-4 bg-black/10 mx-1"></div>
+
+      <div className="relative" ref={dropdownRef}>
+        <button 
+          onMouseDown={(e) => { e.preventDefault(); setIsFontDropdownOpen(!isFontDropdownOpen); }}
+          className="px-3 py-1.5 rounded-full hover:bg-black/5 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+        >
+          <span>Font: {fontFamily}</span>
+          <i className="fa-solid fa-chevron-down text-[10px]"></i>
+        </button>
+
+        <AnimatePresence>
+          {isFontDropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-full right-0 mt-2 w-48 max-h-64 overflow-y-auto bg-neutral-900/95 backdrop-blur-md border border-white/10 rounded-xl p-1 shadow-2xl z-50 no-scrollbar"
+            >
+              {FONTS.map((f, idx) => (
+                <button
+                  key={f.name}
+                  onMouseDown={(e) => { e.preventDefault(); handleFontChange(f.name); }}
+                  className="w-full text-left px-3 py-2 text-xs rounded-lg text-gray-300 hover:text-white hover:bg-white/10 focus:bg-white/10 outline-none cursor-pointer transition-colors flex flex-col gap-0.5"
+                  style={{ fontFamily: f.css }}
+                >
+                  <span className="font-bold">{f.name}</span>
+                  {idx < 5 ? (
+                    <span className="text-[9px] text-gray-500 font-sans">Document Font</span>
+                  ) : (
+                    <span className="text-[9px] text-gray-500 font-sans">Fun Font</span>
+                  )}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="w-[1px] h-4 bg-black/10 mx-1"></div>
+
+      <button 
+        onMouseDown={(e) => formatText(e, "bold")}
+        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer text-sm ${isBold ? 'bg-black/15 text-black' : 'hover:bg-black/5'}`}
+        title="Bold"
+        aria-label="Format Bold"
+      >
+        <i className="fa-solid fa-bold"></i>
+      </button>
+      <button 
+        onMouseDown={(e) => formatText(e, "italic")}
+        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer text-sm ${isItalic ? 'bg-black/15 text-black' : 'hover:bg-black/5'}`}
+        title="Italic"
+        aria-label="Format Italic"
+      >
+        <i className="fa-solid fa-italic"></i>
+      </button>
+      <button 
+        onMouseDown={(e) => formatText(e, "underline")}
+        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer text-sm ${isUnderline ? 'bg-black/15 text-black' : 'hover:bg-black/5'}`}
+        title="Underline"
+        aria-label="Format Underline"
+      >
+        <i className="fa-solid fa-underline"></i>
+      </button>
+
+      <div className="relative" ref={highlightRef}>
+        <button 
+          onMouseDown={(e) => { e.preventDefault(); setIsHighlightOpen(!isHighlightOpen); }}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer text-sm ${isHighlightOpen ? 'bg-black/15 text-black' : 'hover:bg-black/5'}`}
+          title="Highlight Text"
+          aria-label="Toggle Highlight Palette"
+        >
+          <i className="fa-solid fa-highlighter"></i>
+        </button>
+
+        <AnimatePresence>
+          {isHighlightOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-full right-0 mt-2 w-48 bg-neutral-900/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl z-50 flex flex-col gap-2.5"
+            >
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider font-sans">Highlight Color</span>
+              <div className="grid grid-cols-4 gap-2">
+                {HIGHLIGHT_COLORS.map((c) => (
+                  <button
+                    key={c.name}
+                    onMouseDown={(e) => highlightText(e, c.value)}
+                    className="w-7 h-7 rounded-full border border-white/10 hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                    style={{ backgroundColor: c.value }}
+                    title={c.name}
+                  />
+                ))}
+                <button
+                  onMouseDown={(e) => highlightText(e, "transparent")}
+                  className="col-span-4 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                  title="Clear Highlight"
+                >
+                  Clear Highlight
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+
   return (
     <div className={`w-full h-full ${noteColor} relative overflow-hidden flex flex-col mx-auto max-w-[400px] md:max-w-4xl`}>
       <button 
@@ -336,152 +486,31 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
         <i className="fa-solid fa-chevron-left text-lg"></i>
       </button>
 
-      <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50 flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none">
-        <div className="relative" ref={colorRef}>
-          <button 
-            onMouseDown={(e) => { e.preventDefault(); setIsColorDropdownOpen(!isColorDropdownOpen); }}
-            className="px-3 py-1.5 rounded-full hover:bg-black/5 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <i className="fa-solid fa-palette text-[10px]"></i>
-            <span>Color</span>
-            <i className="fa-solid fa-chevron-down text-[10px]"></i>
-          </button>
+      <button 
+        onClick={() => setIsMobileToolbarOpen(!isMobileToolbarOpen)} 
+        aria-label="Format menu"
+        className="absolute top-6 right-6 z-50 md:hidden w-12 h-12 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/20 transition-colors text-black cursor-pointer"
+      >
+        <i className={`fa-solid ${isMobileToolbarOpen ? 'fa-xmark' : 'fa-sliders'} text-lg`}></i>
+      </button>
 
-          <AnimatePresence>
-            {isColorDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute top-full right-0 mt-2 w-40 bg-neutral-900/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl z-50 flex flex-col gap-2"
-              >
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider font-sans text-center">Card Color</span>
-                <div className="grid grid-cols-3 gap-2 justify-items-center">
-                  {CARD_COLORS_META.map((c) => (
-                    <button
-                      key={c.className}
-                      onMouseDown={(e) => { e.preventDefault(); handleColorChange(c.className); }}
-                      className={`w-7 h-7 rounded-full border border-white/10 hover:scale-110 active:scale-95 transition-transform cursor-pointer ${c.bgPreview}`}
-                      title={c.name}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="w-[1px] h-4 bg-black/10 mx-1"></div>
-
-        <div className="relative" ref={dropdownRef}>
-          <button 
-            onMouseDown={(e) => { e.preventDefault(); setIsFontDropdownOpen(!isFontDropdownOpen); }}
-            className="px-3 py-1.5 rounded-full hover:bg-black/5 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <span>Font: {fontFamily}</span>
-            <i className="fa-solid fa-chevron-down text-[10px]"></i>
-          </button>
-
-          <AnimatePresence>
-            {isFontDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute top-full right-0 mt-2 w-48 max-h-64 overflow-y-auto bg-neutral-900/95 backdrop-blur-md border border-white/10 rounded-xl p-1 shadow-2xl z-50 no-scrollbar"
-              >
-                {FONTS.map((f, idx) => (
-                  <button
-                    key={f.name}
-                    onMouseDown={(e) => { e.preventDefault(); handleFontChange(f.name); }}
-                    className="w-full text-left px-3 py-2 text-xs rounded-lg text-gray-300 hover:text-white hover:bg-white/10 focus:bg-white/10 outline-none cursor-pointer transition-colors flex flex-col gap-0.5"
-                    style={{ fontFamily: f.css }}
-                  >
-                    <span className="font-bold">{f.name}</span>
-                    {idx < 5 ? (
-                      <span className="text-[9px] text-gray-500 font-sans">Document Font</span>
-                    ) : (
-                      <span className="text-[9px] text-gray-500 font-sans">Fun Font</span>
-                    )}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="w-[1px] h-4 bg-black/10 mx-1"></div>
-
-        <button 
-          onMouseDown={(e) => formatText(e, "bold")}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer text-sm ${isBold ? 'bg-black/15 text-black' : 'hover:bg-black/5'}`}
-          title="Bold"
-          aria-label="Format Bold"
-        >
-          <i className="fa-solid fa-bold"></i>
-        </button>
-        <button 
-          onMouseDown={(e) => formatText(e, "italic")}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer text-sm ${isItalic ? 'bg-black/15 text-black' : 'hover:bg-black/5'}`}
-          title="Italic"
-          aria-label="Format Italic"
-        >
-          <i className="fa-solid fa-italic"></i>
-        </button>
-        <button 
-          onMouseDown={(e) => formatText(e, "underline")}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer text-sm ${isUnderline ? 'bg-black/15 text-black' : 'hover:bg-black/5'}`}
-          title="Underline"
-          aria-label="Format Underline"
-        >
-          <i className="fa-solid fa-underline"></i>
-        </button>
-
-        <div className="relative" ref={highlightRef}>
-          <button 
-            onMouseDown={(e) => { e.preventDefault(); setIsHighlightOpen(!isHighlightOpen); }}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer text-sm ${isHighlightOpen ? 'bg-black/15 text-black' : 'hover:bg-black/5'}`}
-            title="Highlight Text"
-            aria-label="Toggle Highlight Palette"
-          >
-            <i className="fa-solid fa-highlighter"></i>
-          </button>
-
-          <AnimatePresence>
-            {isHighlightOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute top-full right-0 mt-2 w-48 bg-neutral-900/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl z-50 flex flex-col gap-2.5"
-              >
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider font-sans">Highlight Color</span>
-                <div className="grid grid-cols-4 gap-2">
-                  {HIGHLIGHT_COLORS.map((c) => (
-                    <button
-                      key={c.name}
-                      onMouseDown={(e) => highlightText(e, c.value)}
-                      className="w-7 h-7 rounded-full border border-white/10 hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-                      style={{ backgroundColor: c.value }}
-                      title={c.name}
-                    />
-                  ))}
-                  <button
-                    onMouseDown={(e) => highlightText(e, "transparent")}
-                    className="col-span-4 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 text-white text-[10px] font-bold transition-colors cursor-pointer"
-                    title="Clear Highlight"
-                  >
-                    Clear Highlight
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+      <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50 hidden md:flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none">
+        {renderToolbarContents()}
       </div>
+
+      <AnimatePresence>
+        {isMobileToolbarOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-20 right-6 z-50 md:hidden flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none"
+          >
+            {renderToolbarContents()}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main id="note-scroll-container" className="flex-1 overflow-y-auto px-6 pt-24 md:pt-28 pb-[50vh] no-scrollbar">
         <h1 
