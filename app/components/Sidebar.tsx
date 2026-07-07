@@ -68,6 +68,7 @@ export default function Sidebar({
   currentUser = null,
   isOnline = true,
   onLogout,
+  onRefresh,
   onNoteSelect,
   onNoteDelete,
   onNotesBulkDelete,
@@ -77,6 +78,7 @@ export default function Sidebar({
   currentUser?: { username: string | null; email?: string; avatarUrl?: string } | null;
   isOnline?: boolean;
   onLogout?: () => void;
+  onRefresh?: () => Promise<void>;
   onNoteSelect?: (id: string) => void;
   onNoteDelete?: (id: string) => void;
   onNotesBulkDelete?: (ids: string[]) => void;
@@ -95,6 +97,19 @@ export default function Sidebar({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [openMenuNoteId, setOpenMenuNoteId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshClick = async () => {
+    if (!onRefresh) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleCardClick = (id: string) => {
     if (selectionMode) {
@@ -198,10 +213,10 @@ export default function Sidebar({
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-medium tracking-wide">Hi, {currentUser?.username || "Guest"}</h1>
                 {!isOnline && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/35 text-[9px] font-bold text-amber-400 select-none animate-pulse">
-                    <i className="fa-solid fa-wifi-slash"></i>
-                    <span>Offline</span>
-                  </span>
+                  <i 
+                    className="fa-solid fa-wifi text-red-500 text-base animate-pulse pl-1 select-none" 
+                    title="Offline Mode"
+                  ></i>
                 )}
               </div>
               {currentUser?.avatarUrl ? (
@@ -216,6 +231,15 @@ export default function Sidebar({
                     {(currentUser?.username?.slice(0, 2) || "US").toUpperCase()}
                   </span>
                 </div>
+              )}
+              {onRefresh && (
+                <button 
+                  onClick={handleRefreshClick}
+                  title="Sync and Refresh" 
+                  className="w-12 h-12 bg-btn-dark rounded-full flex items-center justify-center hover:bg-gray-800 text-gray-400 hover:text-white transition-colors shrink-0 cursor-pointer"
+                >
+                  <i className={`fa-solid fa-arrows-rotate text-base ${isRefreshing ? 'animate-spin' : ''}`}></i>
+                </button>
               )}
               {onLogout && (
                 <button 

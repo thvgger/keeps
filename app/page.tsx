@@ -23,7 +23,13 @@ const CARD_COLORS = [
 ];
 
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<{ username: string | null; email?: string; avatarUrl?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ username: string | null; email?: string; avatarUrl?: string } | null>(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("keeps_current_user");
+      return cached ? JSON.parse(cached) : null;
+    }
+    return null;
+  });
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -53,11 +59,26 @@ export default function Home() {
       }
     }
 
-    const handleOnline = () => {
+    const handleOnline = async () => {
       setIsOnline(true);
-      syncOfflineChanges((syncedNotes) => {
+      await syncOfflineChanges((syncedNotes) => {
         setNotes(syncedNotes);
       });
+      try {
+        const res = await fetch("/api/notes");
+        if (res.ok) {
+          const notesData = await res.json();
+          if (Array.isArray(notesData)) {
+            await clearLocalNotes();
+            for (const note of notesData) {
+              await saveLocalNote(note);
+            }
+            setNotes(notesData);
+          }
+        }
+      } catch (err) {
+        console.error("Catch-up fetch failed:", err);
+      }
     };
     const handleOffline = () => {
       setIsOnline(false);
@@ -69,21 +90,34 @@ export default function Home() {
     async function checkAuth() {
       try {
         const res = await fetch("/api/auth/me");
-        const data = await res.json();
-        if (data.user) {
-          setCurrentUser(data.user);
-          const local = await getLocalNotes();
-          if (local && local.length > 0) {
-            setNotes(local);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            setCurrentUser(data.user);
+            localStorage.setItem("keeps_current_user", JSON.stringify(data.user));
+            const local = await getLocalNotes();
+            if (local && local.length > 0) {
+              setNotes(local);
+            }
+            if (navigator.onLine) {
+              await syncOfflineChanges((syncedNotes) => {
+                setNotes(syncedNotes);
+              });
+            }
+          } else {
+            setCurrentUser(null);
+            localStorage.removeItem("keeps_current_user");
           }
-          if (navigator.onLine) {
-            await syncOfflineChanges((syncedNotes) => {
-              setNotes(syncedNotes);
-            });
-          }
+        } else if (res.status === 401) {
+          setCurrentUser(null);
+          localStorage.removeItem("keeps_current_user");
         }
       } catch (err) {
-        console.error(err);
+        console.error("Auth check failed (network/offline):", err);
+        const local = await getLocalNotes();
+        if (local && local.length > 0) {
+          setNotes(local);
+        }
       } finally {
         setCheckingAuth(false);
         setLoading(false);
@@ -101,6 +135,26 @@ export default function Home() {
     if (!currentUser || !currentUser.username) return;
 
     const eventSource = new EventSource("/api/notes/stream");
+
+    eventSource.onopen = async () => {
+      if (navigator.onLine) {
+        try {
+          const res = await fetch("/api/notes");
+          if (res.ok) {
+            const notesData = await res.json();
+            if (Array.isArray(notesData)) {
+              await clearLocalNotes();
+              for (const note of notesData) {
+                await saveLocalNote(note);
+              }
+              setNotes(notesData);
+            }
+          }
+        } catch (err) {
+          console.error("Catch-up fetch failed on stream connect:", err);
+        }
+      }
+    };
 
     eventSource.onmessage = (event) => {
       if (event.data === "ping") return;
@@ -174,6 +228,7 @@ export default function Home() {
           const meData = await meRes.json();
           if (meData.user) {
             setCurrentUser(meData.user);
+            localStorage.setItem("keeps_current_user", JSON.stringify(meData.user));
             await clearLocalNotes();
             if (navigator.onLine) {
               await syncOfflineChanges((syncedNotes) => {
@@ -198,12 +253,39 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      setCurrentUser(null);
-      setNotes([]);
-      setActiveNoteId(null);
-      await clearLocalNotes();
     } catch (err) {
       console.error(err);
+    }
+    setCurrentUser(null);
+    setNotes([]);
+    setActiveNoteId(null);
+    localStorage.removeItem("keeps_current_user");
+    await clearLocalNotes();
+  };
+
+  const handleManualRefresh = async () => {
+    if (navigator.onLine) {
+      await syncOfflineChanges((syncedNotes) => {
+        setNotes(syncedNotes);
+      });
+      try {
+        const res = await fetch("/api/notes");
+        if (res.ok) {
+          const notesData = await res.json();
+          if (Array.isArray(notesData)) {
+            await clearLocalNotes();
+            for (const note of notesData) {
+              await saveLocalNote(note);
+            }
+            setNotes(notesData);
+          }
+        }
+      } catch (err) {
+        console.error("Manual refresh catch-up failed:", err);
+      }
+    } else {
+      const local = await getLocalNotes();
+      setNotes(local);
     }
   };
 
@@ -443,7 +525,9 @@ export default function Home() {
         });
         const data = await res.json();
         if (res.ok) {
-          setCurrentUser(prev => prev ? { ...prev, username: newOauthUsername } : null);
+          const updatedUser = { ...currentUser!, username: newOauthUsername };
+          setCurrentUser(updatedUser);
+          localStorage.setItem("keeps_current_user", JSON.stringify(updatedUser));
           const notesRes = await fetch("/api/notes");
           const notesData = await notesRes.json();
           if (Array.isArray(notesData)) {
@@ -620,6 +704,7 @@ export default function Home() {
           currentUser={currentUser}
           isOnline={isOnline}
           onLogout={handleLogout}
+          onRefresh={handleManualRefresh}
           onNoteSelect={(id) => {
             if (id === "new") {
               const available = CARD_COLORS.filter(c => !recentColorsRef.current.includes(c));
