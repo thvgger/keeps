@@ -49,6 +49,19 @@ function SkeletonContent({ note }: { note: Note }) {
   );
 }
 
+function cleanHtmlForPreview(html: string): string {
+  if (!html) return "";
+  let text = html
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+  text = text.replace(/<[^>]*>/g, "");
+  return text.trim();
+}
+
 export default function Sidebar({
   isFullScreen = false,
   notes = [],
@@ -337,17 +350,19 @@ export default function Sidebar({
                                           </li>
                                         )}
                                       </ul>
-                                    ) : note.paragraphs &&
-                                      !note.title &&
-                                      note.paragraphs.join(" ").length < 120 ? (
-                                      <p className="font-bold text-base leading-tight">
-                                        {note.paragraphs.join(" ")}
-                                      </p>
                                     ) : (
-                                      <p className="text-text-dark/80 text-sm leading-relaxed line-clamp-[10]">
-                                        {note.paragraphs &&
-                                          note.paragraphs.join(" ")}
-                                      </p>
+                                      (() => {
+                                        const previewText = note.paragraphs ? cleanHtmlForPreview(note.paragraphs.join(" ")) : "";
+                                        return previewText.length < 120 ? (
+                                          <p className="font-bold text-base leading-tight">
+                                            {previewText}
+                                          </p>
+                                        ) : (
+                                          <p className="text-text-dark/80 text-sm leading-relaxed line-clamp-[10]">
+                                            {previewText}
+                                          </p>
+                                        );
+                                      })()
                                     )}
                                   </>
                                 ) : (
