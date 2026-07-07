@@ -66,6 +66,7 @@ export default function Sidebar({
   isFullScreen = false,
   notes = [],
   currentUser = null,
+  isOnline = true,
   onLogout,
   onNoteSelect,
   onNoteDelete,
@@ -74,6 +75,7 @@ export default function Sidebar({
   isFullScreen?: boolean;
   notes?: Note[];
   currentUser?: { username: string | null; email?: string; avatarUrl?: string } | null;
+  isOnline?: boolean;
   onLogout?: () => void;
   onNoteSelect?: (id: string) => void;
   onNoteDelete?: (id: string) => void;
@@ -193,7 +195,15 @@ export default function Sidebar({
               </svg>
             </button>
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-medium tracking-wide">Hi, {currentUser?.username || "Guest"}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-medium tracking-wide">Hi, {currentUser?.username || "Guest"}</h1>
+                {!isOnline && (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/35 text-[9px] font-bold text-amber-400 select-none animate-pulse">
+                    <i className="fa-solid fa-wifi-slash"></i>
+                    <span>Offline</span>
+                  </span>
+                )}
+              </div>
               {currentUser?.avatarUrl ? (
                 <img 
                   src={currentUser.avatarUrl} 

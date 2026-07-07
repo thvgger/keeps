@@ -4,6 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "./components/Sidebar";
 import NoteEditor from "./components/NoteEditor";
 import { Note } from "./lib/data";
+import {
+  getLocalNotes,
+  saveLocalNote,
+  deleteLocalNote,
+  clearLocalNotes,
+  addToSyncQueue
+} from "./lib/indexedDb";
+import { syncOfflineChanges } from "./lib/sync";
 
 const CARD_COLORS = [
   "bg-card-coral",
@@ -35,17 +43,43 @@ export default function Home() {
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthSubmitting, setOauthSubmitting] = useState(false);
 
+  const [isOnline, setIsOnline] = useState(true);
+
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(console.error);
+      }
+    }
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncOfflineChanges((syncedNotes) => {
+        setNotes(syncedNotes);
+      });
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     async function checkAuth() {
       try {
         const res = await fetch("/api/auth/me");
         const data = await res.json();
         if (data.user) {
           setCurrentUser(data.user);
-          const notesRes = await fetch("/api/notes");
-          const notesData = await notesRes.json();
-          if (Array.isArray(notesData)) {
-            setNotes(notesData);
+          const local = await getLocalNotes();
+          if (local && local.length > 0) {
+            setNotes(local);
+          }
+          if (navigator.onLine) {
+            await syncOfflineChanges((syncedNotes) => {
+              setNotes(syncedNotes);
+            });
           }
         }
       } catch (err) {
@@ -56,6 +90,11 @@ export default function Home() {
       }
     }
     checkAuth();
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   useEffect(() => {
@@ -67,11 +106,15 @@ export default function Home() {
       if (event.data === "ping") return;
       try {
         const data = JSON.parse(event.data);
-        if (data.type === "notes-updated") {
+        if (data.type === "notes-updated" && navigator.onLine) {
           fetch("/api/notes")
             .then((res) => res.json())
-            .then((notesData) => {
+            .then(async (notesData) => {
               if (Array.isArray(notesData)) {
+                await clearLocalNotes();
+                for (const note of notesData) {
+                  await saveLocalNote(note);
+                }
                 setNotes(notesData);
               }
             });
@@ -131,10 +174,14 @@ export default function Home() {
           const meData = await meRes.json();
           if (meData.user) {
             setCurrentUser(meData.user);
-            const notesRes = await fetch("/api/notes");
-            const notesData = await notesRes.json();
-            if (Array.isArray(notesData)) {
-              setNotes(notesData);
+            await clearLocalNotes();
+            if (navigator.onLine) {
+              await syncOfflineChanges((syncedNotes) => {
+                setNotes(syncedNotes);
+              });
+            } else {
+              const local = await getLocalNotes();
+              setNotes(local);
             }
           }
         }
@@ -154,6 +201,7 @@ export default function Home() {
       setCurrentUser(null);
       setNotes([]);
       setActiveNoteId(null);
+      await clearLocalNotes();
     } catch (err) {
       console.error(err);
     }
@@ -175,11 +223,19 @@ export default function Home() {
     setNotesBackup(null);
     
     for (const note of restoredNotes) {
-      await fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(note)
-      });
+      await saveLocalNote(note);
+      try {
+        const res = await fetch("/api/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(note)
+        });
+        if (!res.ok) {
+          await addToSyncQueue({ action: "CREATE_OR_UPDATE", noteId: note.id, noteData: note });
+        }
+      } catch (err) {
+        await addToSyncQueue({ action: "CREATE_OR_UPDATE", noteId: note.id, noteData: note });
+      }
     }
   };
 
@@ -196,11 +252,20 @@ export default function Home() {
       setActiveNoteId(updated.id);
     }
     
-    await fetch("/api/notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updated)
-    });
+    await saveLocalNote(updated);
+
+    try {
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated)
+      });
+      if (!res.ok) {
+        await addToSyncQueue({ action: "CREATE_OR_UPDATE", noteId: updated.id, noteData: updated });
+      }
+    } catch (err) {
+      await addToSyncQueue({ action: "CREATE_OR_UPDATE", noteId: updated.id, noteData: updated });
+    }
   };
 
   const handleNoteDelete = async (id: string) => {
@@ -212,11 +277,20 @@ export default function Home() {
       setActiveNoteId(null);
     }
     
-    await fetch("/api/notes", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [id] })
-    });
+    await deleteLocalNote(id);
+
+    try {
+      const res = await fetch("/api/notes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] })
+      });
+      if (!res.ok) {
+        await addToSyncQueue({ action: "DELETE", noteId: id });
+      }
+    } catch (err) {
+      await addToSyncQueue({ action: "DELETE", noteId: id });
+    }
   };
 
   const handleNotesBulkDelete = async (ids: string[]) => {
@@ -228,11 +302,26 @@ export default function Home() {
       setActiveNoteId(null);
     }
     
-    await fetch("/api/notes", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids })
-    });
+    for (const id of ids) {
+      await deleteLocalNote(id);
+    }
+
+    try {
+      const res = await fetch("/api/notes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids })
+      });
+      if (!res.ok) {
+        for (const id of ids) {
+          await addToSyncQueue({ action: "DELETE", noteId: id });
+        }
+      }
+    } catch (err) {
+      for (const id of ids) {
+        await addToSyncQueue({ action: "DELETE", noteId: id });
+      }
+    }
   };
 
   if (checkingAuth) {
@@ -529,6 +618,7 @@ export default function Home() {
           isFullScreen={!activeNoteId}
           notes={notes}
           currentUser={currentUser}
+          isOnline={isOnline}
           onLogout={handleLogout}
           onNoteSelect={(id) => {
             if (id === "new") {
