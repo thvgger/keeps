@@ -5,6 +5,15 @@ import Sidebar from "./components/Sidebar";
 import NoteEditor from "./components/NoteEditor";
 import { Note } from "./lib/data";
 
+const CARD_COLORS = [
+  "bg-card-coral",
+  "bg-card-yellow",
+  "bg-card-blue",
+  "bg-card-purple",
+  "bg-card-green",
+  "bg-card-pink",
+];
+
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<{ username: string | null; email?: string; avatarUrl?: string } | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -86,9 +95,12 @@ export default function Home() {
     }
   }, [showToast]);
 
+  const [newNoteColor, setNewNoteColor] = useState("bg-card-coral");
+
   const activeNote =
     activeNoteId === "new" ? null : notes.find((n) => n.id === activeNoteId);
-  const bgColor = activeNote?.color || "bg-new-note-bg";
+  const editorColor = activeNote ? activeNote.color : newNoteColor;
+
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -514,7 +526,13 @@ export default function Home() {
           notes={notes}
           currentUser={currentUser}
           onLogout={handleLogout}
-          onNoteSelect={(id) => setActiveNoteId(id)}
+          onNoteSelect={(id) => {
+            if (id === "new") {
+              const randomIndex = Math.floor(Math.random() * CARD_COLORS.length);
+              setNewNoteColor(CARD_COLORS[randomIndex]);
+            }
+            setActiveNoteId(id);
+          }}
           onNoteDelete={handleNoteDelete}
           onNotesBulkDelete={handleNotesBulkDelete}
         />
@@ -527,11 +545,12 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className={`absolute inset-0 md:relative md:inset-auto md:flex-1 h-full ${bgColor} overflow-hidden flex justify-center z-20`}
+            className={`absolute inset-0 md:relative md:inset-auto md:flex-1 h-full ${editorColor} overflow-hidden flex justify-center z-20`}
           >
             <div className="w-full h-full">
               <NoteEditor
                 note={activeNote}
+                defaultColor={newNoteColor}
                 onClose={() => setActiveNoteId(null)}
                 onUpdateNote={handleNoteUpdate}
               />

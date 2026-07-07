@@ -31,14 +31,35 @@ const HIGHLIGHT_COLORS = [
   { name: "Teal", value: "#0d9488" },
 ];
 
+const CARD_COLORS = [
+  "bg-card-coral",
+  "bg-card-yellow",
+  "bg-card-blue",
+  "bg-card-purple",
+  "bg-card-green",
+  "bg-card-pink",
+];
+
+const CARD_COLORS_META = [
+  { name: "Coral", className: "bg-card-coral", bgPreview: "bg-card-coral" },
+  { name: "Yellow", className: "bg-card-yellow", bgPreview: "bg-card-yellow" },
+  { name: "Blue", className: "bg-card-blue", bgPreview: "bg-card-blue" },
+  { name: "Purple", className: "bg-card-purple", bgPreview: "bg-card-purple" },
+  { name: "Green", className: "bg-card-green", bgPreview: "bg-card-green" },
+  { name: "Pink", className: "bg-card-pink", bgPreview: "bg-card-pink" },
+];
+
 interface NoteEditorProps {
   note?: Note | null;
+  defaultColor?: string;
   onClose: () => void;
   onUpdateNote?: (updatedNote: Note) => void;
 }
 
-export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorProps) {
-  const bgColor = note?.color || "bg-new-note-bg";
+export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClose, onUpdateNote }: NoteEditorProps) {
+  const [noteColor, setNoteColor] = useState(note?.color || defaultColor);
+  const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
+  const colorRef = useRef<HTMLDivElement>(null);
   const [fontFamily, setFontFamily] = useState(note?.font || "Inter");
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -97,6 +118,10 @@ export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorPr
   };
 
   useEffect(() => {
+    if (noteIdRef.current && noteIdRef.current === note?.id) {
+      return;
+    }
+
     if (titleRef.current) {
       titleRef.current.innerText = note?.title || "";
     }
@@ -105,12 +130,16 @@ export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorPr
     }
     noteIdRef.current = note?.id || null;
     setFontFamily(note?.font || "Inter");
+    setNoteColor(note?.color || defaultColor);
   }, [note?.id]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsFontDropdownOpen(false);
+      }
+      if (colorRef.current && !colorRef.current.contains(e.target as Node)) {
+        setIsColorDropdownOpen(false);
       }
       if (highlightRef.current && !highlightRef.current.contains(e.target as Node)) {
         setIsHighlightOpen(false);
@@ -152,7 +181,7 @@ export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorPr
         id: noteIdRef.current,
         title,
         paragraphs,
-        color: note?.color || "bg-new-note-bg",
+        color: noteColor,
         font: fontFamily,
       });
     } else {
@@ -162,7 +191,7 @@ export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorPr
         id,
         title,
         paragraphs,
-        color: "bg-new-note-bg",
+        color: noteColor,
         font: fontFamily,
       });
     }
@@ -223,7 +252,7 @@ export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorPr
         id: noteIdRef.current,
         title,
         paragraphs,
-        color: note?.color || "bg-new-note-bg",
+        color: noteColor,
         font: fontName,
       });
     } else {
@@ -233,7 +262,7 @@ export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorPr
         id,
         title,
         paragraphs,
-        color: "bg-new-note-bg",
+        color: noteColor,
         font: fontName,
       });
     }
@@ -276,10 +305,29 @@ export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorPr
     }
   };
 
+  const handleColorChange = (newColor: string) => {
+    setNoteColor(newColor);
+    setIsColorDropdownOpen(false);
+    
+    if (!titleRef.current || !bodyRef.current) return;
+    const title = titleRef.current.innerText || "";
+    const paragraphs = getParagraphsFromDOM();
+
+    if (noteIdRef.current) {
+      onUpdateNote?.({
+        id: noteIdRef.current,
+        title,
+        paragraphs,
+        color: newColor,
+        font: fontFamily,
+      });
+    }
+  };
+
   const activeFont = FONTS.find(f => f.name === fontFamily) || FONTS[0];
 
   return (
-    <div className={`w-full h-full ${bgColor} relative overflow-hidden flex flex-col mx-auto max-w-[400px] md:max-w-4xl`}>
+    <div className={`w-full h-full ${noteColor} relative overflow-hidden flex flex-col mx-auto max-w-[400px] md:max-w-4xl`}>
       <button 
         onClick={onClose} 
         aria-label="Go back" 
@@ -289,6 +337,43 @@ export default function NoteEditor({ note, onClose, onUpdateNote }: NoteEditorPr
       </button>
 
       <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50 flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none">
+        <div className="relative" ref={colorRef}>
+          <button 
+            onMouseDown={(e) => { e.preventDefault(); setIsColorDropdownOpen(!isColorDropdownOpen); }}
+            className="px-3 py-1.5 rounded-full hover:bg-black/5 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <i className="fa-solid fa-palette text-[10px]"></i>
+            <span>Color</span>
+            <i className="fa-solid fa-chevron-down text-[10px]"></i>
+          </button>
+
+          <AnimatePresence>
+            {isColorDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full right-0 mt-2 w-40 bg-neutral-900/95 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-2xl z-50 flex flex-col gap-2"
+              >
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider font-sans text-center">Card Color</span>
+                <div className="grid grid-cols-3 gap-2 justify-items-center">
+                  {CARD_COLORS_META.map((c) => (
+                    <button
+                      key={c.className}
+                      onMouseDown={(e) => { e.preventDefault(); handleColorChange(c.className); }}
+                      className={`w-7 h-7 rounded-full border border-white/10 hover:scale-110 active:scale-95 transition-transform cursor-pointer ${c.bgPreview}`}
+                      title={c.name}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="w-[1px] h-4 bg-black/10 mx-1"></div>
+
         <div className="relative" ref={dropdownRef}>
           <button 
             onMouseDown={(e) => { e.preventDefault(); setIsFontDropdownOpen(!isFontDropdownOpen); }}
