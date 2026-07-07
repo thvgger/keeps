@@ -67,6 +67,7 @@ export default function Sidebar({
   notes = [],
   currentUser = null,
   isOnline = true,
+  isSyncing = false,
   onLogout,
   onRefresh,
   onNoteSelect,
@@ -77,6 +78,7 @@ export default function Sidebar({
   notes?: Note[];
   currentUser?: { username: string | null; email?: string; avatarUrl?: string } | null;
   isOnline?: boolean;
+  isSyncing?: boolean;
   onLogout?: () => void;
   onRefresh?: () => Promise<void>;
   onNoteSelect?: (id: string) => void;
@@ -98,6 +100,18 @@ export default function Sidebar({
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [openMenuNoteId, setOpenMenuNoteId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const handleRefreshClick = async () => {
     if (!onRefresh) return;
@@ -219,37 +233,70 @@ export default function Sidebar({
                   ></i>
                 )}
               </div>
-              {currentUser?.avatarUrl ? (
-                <img 
-                  src={currentUser.avatarUrl} 
-                  alt="Avatar" 
-                  className="w-12 h-12 rounded-full border-2 border-white/10 shadow-sm shrink-0" 
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-btn-dark border-2 border-white/10 flex items-center justify-center text-gray-400 shadow-sm shrink-0">
-                  <span className="text-sm font-bold">
-                    {(currentUser?.username?.slice(0, 2) || "US").toUpperCase()}
-                  </span>
-                </div>
-              )}
               {onRefresh && (
                 <button 
                   onClick={handleRefreshClick}
                   title="Sync and Refresh" 
                   className="w-12 h-12 bg-btn-dark rounded-full flex items-center justify-center hover:bg-gray-800 text-gray-400 hover:text-white transition-colors shrink-0 cursor-pointer"
                 >
-                  <i className={`fa-solid fa-arrows-rotate text-base ${isRefreshing ? 'animate-spin' : ''}`}></i>
+                  <i className={`fa-solid fa-arrows-rotate text-base ${isSyncing || isRefreshing ? 'animate-spin' : ''}`}></i>
                 </button>
               )}
-              {onLogout && (
-                <button 
-                  onClick={onLogout} 
-                  title="Log Out" 
-                  className="w-12 h-12 bg-btn-dark rounded-full flex items-center justify-center hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors shrink-0 cursor-pointer"
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  aria-label="User settings"
+                  className="w-12 h-12 rounded-full border-2 border-white/10 shadow-sm shrink-0 flex items-center justify-center bg-btn-dark hover:border-white/20 transition-all cursor-pointer overflow-hidden focus:outline-none"
                 >
-                  <i className="fa-solid fa-right-from-bracket text-base"></i>
+                  {currentUser?.avatarUrl ? (
+                    <img 
+                      src={currentUser.avatarUrl} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <span className="text-sm font-bold text-gray-300">
+                      {(currentUser?.username?.slice(0, 2) || "US").toUpperCase()}
+                    </span>
+                  )}
                 </button>
-              )}
+
+                <AnimatePresence>
+                  {isProfileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full right-0 mt-2 w-48 bg-neutral-900/95 backdrop-blur-md border border-white/10 rounded-2xl p-1.5 shadow-2xl z-[100]"
+                    >
+                      <div className="px-3 py-2 border-b border-white/5 flex flex-col gap-0.5">
+                        <span className="text-xs font-semibold text-white truncate">
+                          {currentUser?.username || "Guest User"}
+                        </span>
+                        {currentUser?.email && (
+                          <span className="text-[10px] text-gray-400 truncate">
+                            {currentUser.email}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {onLogout && (
+                        <button
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            onLogout();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 mt-1 text-xs rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer text-left focus:outline-none"
+                        >
+                          <i className="fa-solid fa-right-from-bracket text-xs"></i>
+                          <span>Log Out</span>
+                        </button>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </header>
 

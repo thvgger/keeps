@@ -50,6 +50,7 @@ export default function Home() {
   const [oauthSubmitting, setOauthSubmitting] = useState(false);
 
   const [isOnline, setIsOnline] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -61,6 +62,7 @@ export default function Home() {
 
     const handleOnline = async () => {
       setIsOnline(true);
+      setIsSyncing(true);
       await syncOfflineChanges((syncedNotes) => {
         setNotes(syncedNotes);
       });
@@ -78,6 +80,8 @@ export default function Home() {
         }
       } catch (err) {
         console.error("Catch-up fetch failed:", err);
+      } finally {
+        setIsSyncing(false);
       }
     };
     const handleOffline = () => {
@@ -100,9 +104,11 @@ export default function Home() {
               setNotes(local);
             }
             if (navigator.onLine) {
+              setIsSyncing(true);
               await syncOfflineChanges((syncedNotes) => {
                 setNotes(syncedNotes);
               });
+              setIsSyncing(false);
             }
           } else {
             setCurrentUser(null);
@@ -138,6 +144,7 @@ export default function Home() {
 
     eventSource.onopen = async () => {
       if (navigator.onLine) {
+        setIsSyncing(true);
         try {
           const res = await fetch("/api/notes");
           if (res.ok) {
@@ -152,6 +159,8 @@ export default function Home() {
           }
         } catch (err) {
           console.error("Catch-up fetch failed on stream connect:", err);
+        } finally {
+          setIsSyncing(false);
         }
       }
     };
@@ -230,6 +239,7 @@ export default function Home() {
             setCurrentUser(meData.user);
             localStorage.setItem("keeps_current_user", JSON.stringify(meData.user));
             await clearLocalNotes();
+            setIsSyncing(true);
             if (navigator.onLine) {
               await syncOfflineChanges((syncedNotes) => {
                 setNotes(syncedNotes);
@@ -238,6 +248,7 @@ export default function Home() {
               const local = await getLocalNotes();
               setNotes(local);
             }
+            setIsSyncing(false);
           }
         }
       } else {
@@ -264,6 +275,7 @@ export default function Home() {
   };
 
   const handleManualRefresh = async () => {
+    setIsSyncing(true);
     if (navigator.onLine) {
       await syncOfflineChanges((syncedNotes) => {
         setNotes(syncedNotes);
@@ -282,10 +294,13 @@ export default function Home() {
         }
       } catch (err) {
         console.error("Manual refresh catch-up failed:", err);
+      } finally {
+        setIsSyncing(false);
       }
     } else {
       const local = await getLocalNotes();
       setNotes(local);
+      setIsSyncing(false);
     }
   };
 
@@ -703,6 +718,7 @@ export default function Home() {
           notes={notes}
           currentUser={currentUser}
           isOnline={isOnline}
+          isSyncing={isSyncing}
           onLogout={handleLogout}
           onRefresh={handleManualRefresh}
           onNoteSelect={(id) => {
