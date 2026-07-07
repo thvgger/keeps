@@ -50,6 +50,34 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!currentUser || !currentUser.username) return;
+
+    const eventSource = new EventSource("/api/notes/stream");
+
+    eventSource.onmessage = (event) => {
+      if (event.data === "ping") return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "notes-updated") {
+          fetch("/api/notes")
+            .then((res) => res.json())
+            .then((notesData) => {
+              if (Array.isArray(notesData)) {
+                setNotes(notesData);
+              }
+            });
+        }
+      } catch (err) {
+        console.error("Error parsing stream message", err);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [currentUser]);
+
+  useEffect(() => {
     if (showToast) {
       const timer = setTimeout(() => {
         setShowToast(false);

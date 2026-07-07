@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool, initDb } from "../../lib/db";
 import { getSessionUser } from "../../lib/auth";
+import { notesEmitter } from "./stream/route";
 
 export async function GET() {
   try {
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
       ]
     );
     
+    notesEmitter.emit("update", { userId, type: "notes-updated" });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
@@ -117,6 +119,7 @@ export async function PUT(request: NextRequest) {
       ]
     );
     
+    notesEmitter.emit("update", { userId, type: "notes-updated" });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
@@ -138,6 +141,7 @@ export async function DELETE(request: NextRequest) {
       await pool.query("DELETE FROM notes WHERE id = ANY($1) AND user_id = $2", [ids, userId]);
     }
     
+    notesEmitter.emit("update", { userId, type: "notes-updated" });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
