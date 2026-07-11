@@ -9,7 +9,7 @@ export interface SyncItem {
 }
 
 const DB_NAME = "keeps-db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export function initIndexedDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -29,6 +29,9 @@ export function initIndexedDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains("sync_queue")) {
         db.createObjectStore("sync_queue", { keyPath: "id", autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains("keyval")) {
+        db.createObjectStore("keyval", { keyPath: "key" });
       }
     };
   });
@@ -115,8 +118,31 @@ export async function removeFromSyncQueue(id: number): Promise<void> {
     const tx = db.transaction("sync_queue", "readwrite");
     const store = tx.objectStore("sync_queue");
     const request = store.delete(id);
-
     request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function saveSearchIndex(indexJson: string): Promise<void> {
+  const db = await initIndexedDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("keyval", "readwrite");
+    const store = tx.objectStore("keyval");
+    const request = store.put({ key: "search_index", value: indexJson });
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getSearchIndex(): Promise<string | null> {
+  const db = await initIndexedDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("keyval", "readonly");
+    const store = tx.objectStore("keyval");
+    const request = store.get("search_index");
+    request.onsuccess = () => {
+      resolve(request.result?.value || null);
+    };
     request.onerror = () => reject(request.error);
   });
 }

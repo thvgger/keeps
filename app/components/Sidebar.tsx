@@ -65,6 +65,7 @@ function cleanHtmlForPreview(html: string): string {
 export default function Sidebar({
   isFullScreen = false,
   notes = [],
+  searchWorker = null,
   currentUser = null,
   isOnline = true,
   isSyncing = false,
@@ -76,6 +77,7 @@ export default function Sidebar({
 }: {
   isFullScreen?: boolean;
   notes?: Note[];
+  searchWorker?: Worker | null;
   currentUser?: { username: string | null; email?: string; avatarUrl?: string } | null;
   isOnline?: boolean;
   isSyncing?: boolean;
@@ -99,6 +101,34 @@ export default function Sidebar({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [openMenuNoteId, setOpenMenuNoteId] = useState<string | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!searchWorker) return;
+    const handler = (e: MessageEvent) => {
+      if (e.data.type === "SEARCH_RESULTS") {
+        setSearchResults(e.data.results);
+      }
+    };
+    searchWorker.addEventListener("message", handler);
+    return () => searchWorker.removeEventListener("message", handler);
+  }, [searchWorker]);
+
+  useEffect(() => {
+    if (searchWorker && debouncedQuery !== undefined) {
+      searchWorker.postMessage({ type: "SEARCH", query: debouncedQuery });
+    }
+  }, [debouncedQuery, searchWorker]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -188,8 +218,12 @@ export default function Sidebar({
   }, [isFullScreen]);
 
   // Distribute notes horizontally across the columns
+  const displayedNotes = (debouncedQuery.trim() && searchResults)
+    ? notes.filter(n => searchResults.includes(n.id))
+    : notes;
+
   const columnData: Note[][] = Array.from({ length: cols }, () => []);
-  notes.forEach((note, i) => {
+  displayedNotes.forEach((note, i) => {
     columnData[i % cols].push(note);
   });
 
@@ -327,9 +361,11 @@ export default function Sidebar({
                 </svg>
               </div>
               <input
-                className="block w-full pl-11 pr-3 py-3 border-transparent rounded-full leading-5 bg-btn-dark text-gray-300 placeholder-gray-400 focus:outline-none focus:bg-gray-800 focus:ring-0 sm:text-sm transition-colors"
+                className="block w-full pl-11 pr-3 py-3 border border-transparent rounded-full leading-5 bg-btn-dark text-gray-300 placeholder-gray-400 focus:outline-none focus:bg-[#1f1f1f] focus:border-white/10 focus:ring-1 focus:ring-white/10 sm:text-sm transition-all duration-300 shadow-inner"
                 placeholder="Search notes..."
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </section>

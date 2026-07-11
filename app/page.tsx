@@ -10,7 +10,9 @@ import {
   deleteLocalNote,
   clearLocalNotes,
   addToSyncQueue,
-  removeFromSyncQueue
+  removeFromSyncQueue,
+  getSearchIndex,
+  saveSearchIndex
 } from "./lib/indexedDb";
 import { syncOfflineChanges } from "./lib/sync";
 
@@ -41,6 +43,31 @@ export default function Home() {
   const [showToast, setShowToast] = useState(false);
   const syncTimeoutsRef = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
   const pendingQueueIdsRef = useRef<{ [key: string]: number }>({});
+  const searchWorkerRef = useRef<Worker | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      searchWorkerRef.current = new Worker(new URL('./lib/search.worker.ts', import.meta.url));
+      
+      searchWorkerRef.current.onmessage = (event) => {
+        if (event.data.type === "INIT_DONE" || event.data.type === "INDEX_UPDATED") {
+          saveSearchIndex(event.data.indexJson).catch(console.error);
+        }
+      };
+
+      Promise.all([getSearchIndex(), getLocalNotes()]).then(([indexJson, localNotes]) => {
+        searchWorkerRef.current?.postMessage({
+          type: "INIT",
+          indexJson,
+          notes: localNotes
+        });
+      });
+    }
+    
+    return () => {
+      searchWorkerRef.current?.terminate();
+    };
+  }, []);
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [authUsername, setAuthUsername] = useState("");
@@ -360,6 +387,8 @@ export default function Home() {
       setActiveNoteId(updated.id);
     }
     
+    searchWorkerRef.current?.postMessage({ type: "UPDATE_NOTE", note: updated });
+    
     await saveLocalNote(updated);
 
     if (syncTimeoutsRef.current[updated.id]) {
@@ -400,6 +429,8 @@ export default function Home() {
       setActiveNoteId(null);
     }
     
+    searchWorkerRef.current?.postMessage({ type: "DELETE_NOTE", noteId: id });
+    
     await deleteLocalNote(id);
 
     try {
@@ -424,6 +455,8 @@ export default function Home() {
     if (activeNoteId && ids.includes(activeNoteId)) {
       setActiveNoteId(null);
     }
+    
+    ids.forEach(id => searchWorkerRef.current?.postMessage({ type: "DELETE_NOTE", noteId: id }));
     
     for (const id of ids) {
       await deleteLocalNote(id);
@@ -742,6 +775,7 @@ export default function Home() {
         <Sidebar
           isFullScreen={!activeNoteId}
           notes={notes}
+          searchWorker={searchWorkerRef.current}
           currentUser={currentUser}
           isOnline={isOnline}
           isSyncing={isSyncing}
