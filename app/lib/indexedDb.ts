@@ -94,7 +94,7 @@ export async function getSyncQueue(): Promise<SyncItem[]> {
   });
 }
 
-export async function addToSyncQueue(item: Omit<SyncItem, "timestamp">): Promise<void> {
+export async function addToSyncQueue(item: Omit<SyncItem, "timestamp">): Promise<number> {
   const db = await initIndexedDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction("sync_queue", "readwrite");
@@ -104,7 +104,7 @@ export async function addToSyncQueue(item: Omit<SyncItem, "timestamp">): Promise
       timestamp: Date.now()
     });
 
-    request.onsuccess = () => resolve();
+    request.onsuccess = () => resolve(request.result as number);
     request.onerror = () => reject(request.error);
   });
 }

@@ -9,7 +9,8 @@ import {
   saveLocalNote,
   deleteLocalNote,
   clearLocalNotes,
-  addToSyncQueue
+  addToSyncQueue,
+  removeFromSyncQueue
 } from "./lib/indexedDb";
 import { syncOfflineChanges } from "./lib/sync";
 
@@ -38,6 +39,8 @@ export default function Home() {
   const [notesBackup, setNotesBackup] = useState<Note[] | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const syncTimeoutsRef = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
+  const pendingQueueIdsRef = useRef<{ [key: string]: number }>({});
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [authUsername, setAuthUsername] = useState("");
@@ -173,6 +176,10 @@ export default function Home() {
           fetch("/api/notes")
             .then((res) => res.json())
             .then(async (notesData) => {
+              const hasPending = Object.keys(syncTimeoutsRef.current).length > 0 || Object.keys(pendingQueueIdsRef.current).length > 0;
+              if (hasPending) {
+                return;
+              }
               if (Array.isArray(notesData)) {
                 await clearLocalNotes();
                 for (const note of notesData) {
@@ -351,18 +358,33 @@ export default function Home() {
     
     await saveLocalNote(updated);
 
-    try {
-      const res = await fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updated)
-      });
-      if (!res.ok) {
-        await addToSyncQueue({ action: "CREATE_OR_UPDATE", noteId: updated.id, noteData: updated });
-      }
-    } catch (err) {
-      await addToSyncQueue({ action: "CREATE_OR_UPDATE", noteId: updated.id, noteData: updated });
+    if (syncTimeoutsRef.current[updated.id]) {
+      clearTimeout(syncTimeoutsRef.current[updated.id]);
     }
+    if (pendingQueueIdsRef.current[updated.id]) {
+      await removeFromSyncQueue(pendingQueueIdsRef.current[updated.id]);
+    }
+
+    const queueId = await addToSyncQueue({ action: "CREATE_OR_UPDATE", noteId: updated.id, noteData: updated });
+    pendingQueueIdsRef.current[updated.id] = queueId;
+
+    syncTimeoutsRef.current[updated.id] = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated)
+        });
+        if (res.ok) {
+          await removeFromSyncQueue(queueId);
+          delete pendingQueueIdsRef.current[updated.id];
+        }
+      } catch (err) {
+        // Already in sync queue
+      }
+      
+      delete syncTimeoutsRef.current[updated.id];
+    }, 1000);
   };
 
   const handleNoteDelete = async (id: string) => {
