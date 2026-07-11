@@ -773,7 +773,7 @@ export default function Home() {
               <NoteEditor
                 note={activeNote}
                 defaultColor={newNoteColor}
-                onClose={() => setActiveNoteId(null)}
+                onClose={() => window.location.reload()}
                 onUpdateNote={handleNoteUpdate}
               />
             </div>
