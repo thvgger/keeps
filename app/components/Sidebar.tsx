@@ -574,6 +574,10 @@ export default function Sidebar({
               </motion.div>
             )}
           </AnimatePresence>
+          
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[9px] text-gray-500/30 select-none pointer-events-none font-medium">
+            v0.1.1
+          </div>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent
