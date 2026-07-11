@@ -173,6 +173,7 @@ export default function Home() {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "notes-updated" && navigator.onLine) {
+          setIsSyncing(true);
           fetch("/api/notes")
             .then((res) => res.json())
             .then(async (notesData) => {
@@ -187,7 +188,8 @@ export default function Home() {
                 }
                 setNotes(notesData);
               }
-            });
+            })
+            .finally(() => setIsSyncing(false));
         }
       } catch (err) {
         console.error("Error parsing stream message", err);
@@ -284,6 +286,8 @@ export default function Home() {
   const handleManualRefresh = async () => {
     setIsSyncing(true);
     if (navigator.onLine) {
+      fetch("/api/notes/broadcast", { method: "POST" }).catch(console.error);
+      
       await syncOfflineChanges((syncedNotes) => {
         setNotes(syncedNotes);
       });
@@ -773,7 +777,10 @@ export default function Home() {
               <NoteEditor
                 note={activeNote}
                 defaultColor={newNoteColor}
-                onClose={() => window.location.reload()}
+                onClose={() => {
+                  setActiveNoteId(null);
+                  handleManualRefresh();
+                }}
                 onUpdateNote={handleNoteUpdate}
               />
             </div>
