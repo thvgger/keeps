@@ -101,6 +101,7 @@ export default function Sidebar({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [openMenuNoteId, setOpenMenuNoteId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -228,7 +229,8 @@ export default function Sidebar({
   });
 
   return (
-    <ContextMenu
+    <>
+      <ContextMenu
       open={openMenuNoteId === "background"}
       onOpenChange={(open) => {
         if (open) {
@@ -241,7 +243,10 @@ export default function Sidebar({
       <ContextMenuTrigger className="w-full h-full flex flex-col flex-1 min-h-0">
         <div className={containerClasses}>
           <header className="flex justify-between items-center mb-8 pt-4 shrink-0">
-            <button className="w-12 h-12 bg-btn-dark rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors shrink-0">
+            <button 
+              onClick={() => setIsDrawerOpen(true)}
+              className="w-12 h-12 bg-btn-dark rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20"
+            >
               <svg
                 className="h-6 w-6 text-white"
                 fill="none"
@@ -637,5 +642,80 @@ export default function Sidebar({
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
+
+    <AnimatePresence>
+      {isDrawerOpen && (
+        <div className="fixed inset-0 z-[200] flex">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsDrawerOpen(false)}
+          />
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", bounce: 0, duration: 0.45 }}
+            className="relative w-[80vw] md:w-[320px] h-full bg-[#121212] border-r border-white/5 shadow-2xl flex flex-col font-poppins overflow-hidden"
+          >
+            <div className="p-6 flex justify-between items-center border-b border-white/5">
+              <h2 className="text-2xl font-bold tracking-tight text-white select-none">Keeps</h2>
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white cursor-pointer focus:outline-none"
+              >
+                <i className="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+            <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/10 text-white transition-colors cursor-pointer outline-none"
+              >
+                <i className="fa-solid fa-note-sticky w-5 text-center text-card-purple"></i>
+                <span className="font-medium tracking-wide">Notes</span>
+              </button>
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer outline-none"
+              >
+                <i className="fa-regular fa-bell w-5 text-center"></i>
+                <span className="font-medium tracking-wide">Reminders</span>
+              </button>
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer outline-none"
+              >
+                <i className="fa-solid fa-box-archive w-5 text-center"></i>
+                <span className="font-medium tracking-wide">Archive</span>
+              </button>
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer outline-none"
+              >
+                <i className="fa-regular fa-trash-can w-5 text-center"></i>
+                <span className="font-medium tracking-wide">Bin</span>
+              </button>
+            </nav>
+            <div className="p-4 border-t border-white/5 flex flex-col gap-3">
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer outline-none"
+              >
+                <i className="fa-solid fa-gear w-5 text-center"></i>
+                <span className="font-medium tracking-wide">Settings</span>
+              </button>
+              <div className="px-4 py-1 pb-2 text-[10px] text-gray-600 font-semibold tracking-[0.2em] uppercase select-none">
+                Version 0.1.1
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
