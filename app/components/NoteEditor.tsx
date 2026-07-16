@@ -466,31 +466,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
       <main 
         id="note-scroll-container" 
         className="flex-1 overflow-y-auto px-6 pt-24 md:pt-28 pb-[50vh] no-scrollbar relative"
-        onPointerMove={(e) => {
-          updateMyPresence({ cursor: { x: Math.round(e.clientX), y: Math.round(e.clientY) } });
-        }}
-        onPointerLeave={() => updateMyPresence({ cursor: null })}
       >
-        {others && others.map(({ connectionId, presence, info }) => {
-          const cursor = presence?.cursor as { x: number; y: number } | null;
-          if (cursor) {
-            return (
-              <div 
-                key={connectionId}
-                className="pointer-events-none absolute z-50 flex items-center gap-2 transition-transform duration-100 ease-linear"
-                style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
-              >
-                <svg width="24" height="36" viewBox="0 0 24 36" fill="none" stroke="white" strokeWidth="2" className="text-blue-500 fill-current drop-shadow-md">
-                  <path d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z" />
-                </svg>
-                <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-md whitespace-nowrap shadow-md mt-6 ml-2">
-                  {info?.name || "Anonymous"}
-                </div>
-              </div>
-            );
-          }
-          return null;
-        })}
 
         <h1 
           ref={titleRef}
