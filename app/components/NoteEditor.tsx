@@ -198,7 +198,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
         // CollaborationCursor.configure({ provider, user: { name: userInfo?.name || 'Anonymous', color: userInfo?.color || '#3b82f6' } }),
       ] : []),
     ],
-    content: note?.htmlContent || getLegacyHTML(note),
+    // The initial content is ignored by TipTap if Collaboration is active, so we must set it manually after sync
     editorProps: {
       attributes: {
         class: 'outline-none min-h-[100px] text-[15px] md:text-lg leading-relaxed font-medium text-gray-800 relative z-10',
@@ -209,6 +209,36 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
       handleUpdate(title, editor.getHTML(), editor.getText(), noteColor, fontFamily);
     }
   });
+
+  useEffect(() => {
+    if (!editor || !provider) return;
+
+    const initializeContent = () => {
+      // If the Yjs document is empty, populate it with our existing Postgres data
+      if (editor.isEmpty) {
+        const initialContent = note?.htmlContent || getLegacyHTML(note);
+        if (initialContent) {
+          editor.commands.setContent(initialContent);
+        }
+      }
+    };
+
+    // LiveblocksYjsProvider exposes 'synced' property and event
+    if (provider.synced || provider.isSynced) {
+      initializeContent();
+    } else {
+      const handleSync = (isSynced: boolean) => {
+        if (isSynced) initializeContent();
+      };
+      provider.on('synced', handleSync);
+      provider.on('sync', handleSync); // Some versions use 'sync' instead of 'synced'
+      
+      return () => {
+        provider.off('synced', handleSync);
+        provider.off('sync', handleSync);
+      };
+    }
+  }, [editor, provider, note]);
 
   const handleTitleInput = () => {
     if (!editor) return;
