@@ -109,7 +109,7 @@ function CollaborativeNoteEditorWrapper(props: NoteEditorProps) {
     return <div className="flex-1 w-full h-full flex items-center justify-center bg-gray-50/50">Connecting editor...</div>;
   }
 
-  return <NoteEditorInner key={yjsState.key} {...props} others={others} updateMyPresence={updateMyPresence} doc={yjsState.doc} provider={yjsState.provider} userInfo={userInfo} />;
+  return <NoteEditorInner key={yjsState?.key} {...props} others={others} updateMyPresence={updateMyPresence} doc={yjsState?.doc} provider={yjsState?.provider} userInfo={userInfo} />;
 }
 
 const getLegacyHTML = (note?: Note | null) => {
@@ -187,7 +187,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        undoRedo: doc ? false : undefined, // Disable native undoRedo if using Yjs collaboration
+        history: doc ? false : undefined, // Disable native history if using Yjs collaboration
       }),
       Underline,
       TaskList,
