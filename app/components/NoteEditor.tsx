@@ -1,9 +1,12 @@
+"use client";
+
 import { useState, useEffect, useRef, PointerEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Note } from "../lib/data";
 import ShareModal from "./ShareModal";
-import { LiveblocksProvider, RoomProvider, useMyPresence, useOthers } from "@liveblocks/react";
+import { LiveblocksProvider, RoomProvider, useMyPresence, useOthers, ClientSideSuspense } from "@liveblocks/react";
 import { UserPlus } from "lucide-react";
+
 
 const FONTS = [
   { name: "Inter", css: "'Inter', sans-serif" },
@@ -59,21 +62,35 @@ interface NoteEditorProps {
   onUpdateNote?: (updatedNote: Note) => void;
 }
 
+interface NoteEditorInnerProps extends NoteEditorProps {
+  others?: readonly any[];
+  updateMyPresence?: (presence: any) => void;
+}
+
 export default function NoteEditor(props: NoteEditorProps) {
   if (!props.note?.id) {
-    return <NoteEditorInner {...props} />;
+    return <NoteEditorInner {...props} others={[]} updateMyPresence={() => {}} />;
   }
 
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-      <RoomProvider id={props.note.id}>
-        <NoteEditorInner {...props} />
+      <RoomProvider id={props.note.id} initialPresence={{ cursor: null }}>
+        <ClientSideSuspense fallback={<div className="flex-1 w-full h-full flex items-center justify-center bg-gray-50/50">Loading editor...</div>}>
+          {() => <CollaborativeNoteEditorWrapper {...props} />}
+        </ClientSideSuspense>
       </RoomProvider>
     </LiveblocksProvider>
   );
 }
 
-function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpdateNote }: NoteEditorProps) {
+function CollaborativeNoteEditorWrapper(props: NoteEditorProps) {
+  const [myPresence, updateMyPresence] = useMyPresence();
+  const others = useOthers();
+
+  return <NoteEditorInner {...props} others={others} updateMyPresence={updateMyPresence} />;
+}
+
+function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpdateNote, others = [], updateMyPresence = () => {} }: NoteEditorInnerProps) {
   const [noteColor, setNoteColor] = useState(note?.color || defaultColor);
   const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
   const colorRef = useRef<HTMLDivElement>(null);
@@ -84,11 +101,6 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
   const noteIdRef = useRef<string | null>(null);
   
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  
-  // Liveblocks presence
-  const [myPresence, updateMyPresence] = useMyPresence();
-  const others = useOthers();
-
   
   const titleRef = useRef<HTMLHeadingElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
