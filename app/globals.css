@@ -109,6 +109,11 @@ body {
   100% { background-color: var(--color-card-pink); }
 }
 
+/* Hide Liveblocks Watermark */
+a[href*="liveblocks.io"], div[data-liveblocks-logo], .lb-root, #liveblocks-badge {
+  display: none !important;
+}
+
 .skeleton-card-cycle {
   animation: colorCycle 12s infinite alternate ease-in-out;
 }
