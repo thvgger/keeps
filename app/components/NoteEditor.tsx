@@ -189,7 +189,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        history: !doc, // Disable history if using collaboration
+        undoRedo: doc ? false : undefined, // Disable native undoRedo if using Yjs collaboration
       }),
       Underline,
       TaskList,
