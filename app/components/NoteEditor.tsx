@@ -252,7 +252,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
         color: userInfo.color || '#3b82f6'
       });
     }
-  }, [editor, userInfo, doc, provider]);
+  }, [editor, userInfo?.name, userInfo?.color, doc, provider]);
 
   const handleTitleInput = () => {
     if (!editor) return;
