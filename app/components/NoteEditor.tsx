@@ -502,50 +502,60 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
 
   return (
     <div className={`w-full h-full ${noteColor} relative overflow-hidden flex flex-col mx-auto max-w-[400px] md:max-w-4xl`}>
-      <div className="absolute top-6 left-6 md:top-8 md:left-8 z-50 flex items-center">
-        <button
-          onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-black/70 hover:text-black transition-colors"
-        >
-          <i className="fa-solid fa-arrow-left"></i>
-        </button>
-        {note?.id && (
-          <button 
-            onClick={() => setIsShareModalOpen(true)}
-            className="px-4 py-2 flex items-center gap-2 rounded-full bg-blue-600/10 hover:bg-blue-600/20 text-blue-700 font-semibold text-sm transition-colors ml-2"
+      {/* Top Navigation Bar */}
+      <div className="absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-8 z-50 flex items-center justify-between pointer-events-none">
+        
+        {/* Left Side: Back & Share */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-black/70 hover:text-black transition-colors"
           >
-            <UserPlus size={16} />
-            Share
+            <i className="fa-solid fa-arrow-left"></i>
           </button>
-        )}
-      </div>
+          {note?.id && (
+            <button 
+              onClick={() => setIsShareModalOpen(true)}
+              className="w-10 h-10 md:w-auto md:px-4 md:py-2 flex items-center justify-center md:gap-2 rounded-full bg-blue-600/10 hover:bg-blue-600/20 text-blue-700 font-semibold text-sm transition-colors"
+              title="Share"
+            >
+              <UserPlus size={16} />
+              <span className="hidden md:inline">Share</span>
+            </button>
+          )}
+        </div>
 
-      <button 
-        onClick={() => setIsMobileToolbarOpen(!isMobileToolbarOpen)} 
-        aria-label="Format menu"
-        className="absolute top-6 right-6 z-50 md:hidden w-12 h-12 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/20 transition-colors text-black cursor-pointer"
-      >
-        <i className={`fa-solid ${isMobileToolbarOpen ? 'fa-xmark' : 'fa-sliders'} text-lg`}></i>
-      </button>
+        {/* Right Side: Avatars & Toolbars */}
+        <div className="flex items-center gap-2 md:gap-4 pointer-events-auto">
+          {/* Live Avatars - Now visible on mobile */}
+          {others && others.length > 0 && (
+            <div className="flex items-center">
+              {others.slice(0, 3).map(({ connectionId, info }) => (
+                <div key={connectionId} className="w-8 h-8 rounded-full border-2 border-white -ml-2 first:ml-0 bg-blue-500 flex items-center justify-center text-white text-xs font-bold overflow-hidden shadow-sm" title={info?.name || 'Anonymous'}>
+                  {info?.avatar ? <img src={info.avatar} className="w-full h-full object-cover" /> : (info?.name?.charAt(0).toUpperCase() || '?')}
+                </div>
+              ))}
+              {others.length > 3 && (
+                <div className="w-8 h-8 rounded-full border-2 border-white -ml-2 bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold shadow-sm">
+                  +{others.length - 3}
+                </div>
+              )}
+            </div>
+          )}
 
-      <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50 hidden md:flex items-center gap-2">
-        {/* Render Other Users Avatars */}
-        {others && others.length > 0 && (
-          <div className="hidden md:flex items-center mr-4">
-            {others.slice(0, 3).map(({ connectionId, info }) => (
-              <div key={connectionId} className="w-8 h-8 rounded-full border-2 border-white -ml-2 first:ml-0 bg-blue-500 flex items-center justify-center text-white text-xs font-bold overflow-hidden" title={info?.name || 'Anonymous'}>
-                {info?.avatar ? <img src={info.avatar} className="w-full h-full object-cover" /> : (info?.name?.charAt(0).toUpperCase() || '?')}
-              </div>
-            ))}
-            {others.length > 3 && (
-              <div className="w-8 h-8 rounded-full border-2 border-white -ml-2 bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold">
-                +{others.length - 3}
-              </div>
-            )}
+          {/* Mobile Toolbar Toggle */}
+          <button 
+            onClick={() => setIsMobileToolbarOpen(!isMobileToolbarOpen)} 
+            aria-label="Format menu"
+            className="md:hidden w-10 h-10 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/20 transition-colors text-black cursor-pointer"
+          >
+            <i className={`fa-solid ${isMobileToolbarOpen ? 'fa-xmark' : 'fa-sliders'} text-sm`}></i>
+          </button>
+
+          {/* Desktop Toolbar */}
+          <div className="hidden md:flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none">
+            {renderToolbarContents()}
           </div>
-        )}
-        <div className="flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none">
-          {renderToolbarContents()}
         </div>
       </div>
 
@@ -556,7 +566,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-20 right-6 z-50 md:hidden flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none"
+            className="absolute top-16 right-4 left-4 z-50 md:hidden flex flex-wrap justify-center items-center gap-1.5 bg-black/10 backdrop-blur-md p-2 rounded-2xl border border-black/5 shadow-md text-black select-none"
           >
             {renderToolbarContents()}
           </motion.div>
@@ -573,13 +583,14 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
       >
         {/* Render Other Users Cursors */}
         {others && others.map(({ connectionId, presence, info }) => {
-          if (presence?.cursor) {
+          const cursor = presence?.cursor as { x: number; y: number } | null;
+          if (cursor) {
             return (
               <div 
                 key={connectionId}
                 className="pointer-events-none absolute z-50 flex items-center gap-2 transition-transform duration-100 ease-linear"
                 style={{
-                  transform: `translate(${presence.cursor.x}px, ${presence.cursor.y}px)`
+                  transform: `translate(${cursor.x}px, ${cursor.y}px)`
                 }}
               >
                 <svg width="24" height="36" viewBox="0 0 24 36" fill="none" stroke="white" strokeWidth="2" className="text-blue-500 fill-current drop-shadow-md">
