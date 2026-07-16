@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Note } from "../lib/data";
+import { FONTS } from "./NoteEditor";
 import packageJson from "../../package.json";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -157,6 +158,36 @@ export default function Sidebar({
       console.error(err);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleCheckboxToggle = async (e: React.MouseEvent, noteId: string) => {
+    const target = e.target as HTMLInputElement;
+    if (target.tagName !== 'INPUT' || target.type !== 'checkbox') return;
+    
+    e.stopPropagation();
+    
+    const container = e.currentTarget as HTMLElement;
+    const allCheckboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
+    const index = allCheckboxes.indexOf(target);
+    
+    if (index !== -1) {
+      const isChecked = target.checked;
+      
+      const li = target.closest('li[data-type="taskItem"]');
+      if (li) {
+        li.setAttribute('data-checked', isChecked.toString());
+      }
+
+      try {
+        await fetch('/api/notes/toggle-checkbox', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ noteId, checkboxIndex: index, newValue: isChecked })
+        });
+      } catch (error) {
+        console.error("Failed to toggle checkbox:", error);
+      }
     }
   };
 
@@ -392,6 +423,7 @@ export default function Sidebar({
                       (hasAnimated.current ||
                         revealedCards.current.has(note.id)) &&
                       !isTransitioning;
+                    const activeFont = FONTS.find(f => f.name === note.font) || FONTS[0];
                     return (
                       <motion.div
                         key={note.id}
@@ -435,6 +467,7 @@ export default function Sidebar({
                               className="block text-left w-full outline-none focus:ring-2 focus:ring-white/50 rounded-2xl"
                             >
                               <article
+                                style={{ fontFamily: activeFont.css }}
                                 className={`${note.color} rounded-2xl p-4 text-text-dark h-fit cursor-pointer text-left w-full flex flex-col relative break-words`}
                               >
                                 {selectionMode && (
@@ -480,13 +513,18 @@ export default function Sidebar({
                                       ) : (
                                         (() => {
                                           const rawHtml = note.htmlContent || (note.paragraphs ? note.paragraphs.join(" ") : "");
-                                          const previewText = note.previewText || cleanHtmlForPreview(rawHtml);
-                                          if (!previewText.trim()) return null;
+                                          if (!rawHtml.trim()) return null;
 
                                           return (
-                                            <p className={`text-black/80 text-[14px] leading-relaxed line-clamp-[12] break-words whitespace-pre-wrap ${!note.title ? 'mt-0' : ''}`}>
-                                              {previewText}
-                                            </p>
+                                            <div 
+                                              className={`text-black/80 text-[14px] leading-relaxed break-words prose-preview relative max-h-[280px] overflow-hidden ${!note.title ? 'mt-0' : ''}`}
+                                              style={{
+                                                maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
+                                                WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)'
+                                              }}
+                                              dangerouslySetInnerHTML={{ __html: rawHtml }}
+                                              onClick={(e) => handleCheckboxToggle(e, note.id)}
+                                            />
                                           );
                                         })()
                                       )}

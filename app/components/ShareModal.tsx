@@ -140,7 +140,7 @@ export default function ShareModal({ noteId, isOpen, onClose, publicLinkId, publ
                 <input
                   type="text"
                   placeholder="Email address or username"
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-black"
                   value={emailOrUsername}
                   onChange={(e) => setEmailOrUsername(e.target.value)}
                 />
@@ -270,11 +270,7 @@ export default function ShareModal({ noteId, isOpen, onClose, publicLinkId, publ
           </div>
         </div>
         
-        <div className="p-4 border-t border-gray-100 bg-gray-50 text-center">
-          <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
-            <Shield size={12} /> Securely shared via Liveblocks
-          </p>
-        </div>
+        
       </div>
     </div>
   );

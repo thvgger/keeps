@@ -17,7 +17,7 @@ import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import { UserPlus, List as ListIcon, ListOrdered, CheckSquare, Bold as BoldIcon, Italic as ItalicIcon, Underline as UnderlineIcon, Highlighter, Palette } from "lucide-react";
 
-const FONTS = [
+export const FONTS = [
   { name: "Inter", css: "'Inter', sans-serif" },
   { name: "Georgia", css: "'Georgia', serif" },
   { name: "Roboto", css: "'Roboto', sans-serif" },
