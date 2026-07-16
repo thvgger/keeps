@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Note } from "../lib/data";
-import { FONTS } from "./NoteEditor";
+import { FONTS, getLegacyHTML } from "./NoteEditor";
 import packageJson from "../../package.json";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -484,50 +484,22 @@ export default function Sidebar({
                                         {note.title}
                                       </h3>
                                     )}
-                                    {note.listItems ? (
-                                      <ul className="space-y-2 flex flex-col justify-start">
-                                        {note.listItems
-                                          .slice(0, 8)
-                                          .map((item) => (
-                                            <li
-                                              key={item.id}
-                                              className="flex items-center gap-2 bg-black/5 rounded-full px-2 py-1 min-w-0"
-                                            >
-                                              <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center relative shrink-0">
-                                                {item.completed && (
-                                                  <div className="w-2 h-2 bg-black rounded-full absolute"></div>
-                                                )}
-                                              </div>
-                                              <span className="text-xs font-medium truncate break-words">
-                                                {item.text}
-                                              </span>
-                                            </li>
-                                          ))}
-                                        {note.listItems.length > 8 && (
-                                          <li className="text-xs font-bold text-black/40 pl-2 pt-1">
-                                            +{note.listItems.length - 8} more
-                                            items
-                                          </li>
-                                        )}
-                                      </ul>
-                                      ) : (
-                                        (() => {
-                                          const rawHtml = note.htmlContent || (note.paragraphs ? note.paragraphs.join(" ") : "");
-                                          if (!rawHtml.trim()) return null;
+                                    {(() => {
+                                      const rawHtml = note.htmlContent || getLegacyHTML(note);
+                                      if (!rawHtml.trim()) return null;
 
-                                          return (
-                                            <div 
-                                              className={`text-black/80 text-[14px] leading-relaxed break-words prose-preview relative max-h-[280px] overflow-hidden ${!note.title ? 'mt-0' : ''}`}
-                                              style={{
-                                                maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
-                                                WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)'
-                                              }}
-                                              dangerouslySetInnerHTML={{ __html: rawHtml }}
-                                              onClick={(e) => handleCheckboxToggle(e, note.id)}
-                                            />
-                                          );
-                                        })()
-                                      )}
+                                      return (
+                                        <div 
+                                          className={`text-black/80 text-[14px] leading-relaxed break-words prose-preview relative max-h-[280px] overflow-hidden ${!note.title ? 'mt-0' : ''}`}
+                                          style={{
+                                            maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
+                                            WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)'
+                                          }}
+                                          dangerouslySetInnerHTML={{ __html: rawHtml }}
+                                          onClick={(e) => handleCheckboxToggle(e, note.id)}
+                                        />
+                                      );
+                                    })()}
                                   </>
                                 ) : (
                                   <SkeletonContent note={note} />

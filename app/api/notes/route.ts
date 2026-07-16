@@ -12,7 +12,10 @@ export async function GET() {
     }
 
     const result = await pool.query(`
-      SELECT n.*, c.role as collaborator_role
+      SELECT n.*, c.role as collaborator_role,
+        EXISTS (
+          SELECT 1 FROM note_collaborators nc WHERE nc.note_id = n.id
+        ) as has_collaborators
       FROM notes n
       LEFT JOIN note_collaborators c ON n.id = c.note_id AND c.user_id = $1
       WHERE n.user_id = $1 OR c.user_id = $1
@@ -29,7 +32,8 @@ export async function GET() {
       interactivePrompt: row.interactive_prompt || null,
       role: row.user_id === userId ? "owner" : row.collaborator_role,
       publicLinkId: row.public_link_id || null,
-      publicRole: row.public_role || null
+      publicRole: row.public_role || null,
+      isShared: row.has_collaborators || row.public_link_id != null
     }));
     return NextResponse.json(notes);
   } catch (error) {

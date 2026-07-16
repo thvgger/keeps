@@ -71,7 +71,7 @@ interface NoteEditorInnerProps extends NoteEditorProps {
 }
 
 export default function NoteEditor(props: NoteEditorProps) {
-  if (!props.note?.id) {
+  if (!props.note?.id || !props.note.isShared) {
     return <NoteEditorInner {...props} others={[]} updateMyPresence={() => {}} />;
   }
 
@@ -112,7 +112,7 @@ function CollaborativeNoteEditorWrapper(props: NoteEditorProps) {
   return <NoteEditorInner key={yjsState?.key} {...props} others={others} updateMyPresence={updateMyPresence} doc={yjsState?.doc} provider={yjsState?.provider} userInfo={userInfo} />;
 }
 
-const getLegacyHTML = (note?: Note | null) => {
+export const getLegacyHTML = (note?: Note | null) => {
   if (!note) return "";
   let html = "";
   if (note.paragraphs) {

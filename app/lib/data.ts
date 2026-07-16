@@ -9,6 +9,7 @@ export interface Note {
   font?: string;
   htmlContent?: string;
   previewText?: string;
+  isShared?: boolean;
 }
 
 export const dummyNotes: Note[] = [
