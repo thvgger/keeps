@@ -53,13 +53,16 @@ function SkeletonContent({ note }: { note: Note }) {
 function cleanHtmlForPreview(html: string): string {
   if (!html) return "";
   let text = html
+    .replace(/<p[^>]*>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "\n• ")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'");
-  text = text.replace(/<[^>]*>/g, "");
+    .replace(/&#39;/gi, "'")
+    .replace(/<[^>]*>?/gm, " ");
   return text.trim();
 }
 
@@ -474,21 +477,19 @@ export default function Sidebar({
                                           </li>
                                         )}
                                       </ul>
-                                    ) : (
+                                      ) : (
                                         (() => {
                                           const rawHtml = note.htmlContent || (note.paragraphs ? note.paragraphs.join(" ") : "");
                                           const previewText = note.previewText || cleanHtmlForPreview(rawHtml);
-                                        return previewText.length < 120 ? (
-                                          <p className="font-bold text-base leading-tight break-words">
-                                            {previewText}
-                                          </p>
-                                        ) : (
-                                          <p className="text-text-dark/80 text-sm leading-relaxed line-clamp-[10] break-words">
-                                            {previewText}
-                                          </p>
-                                        );
-                                      })()
-                                    )}
+                                          if (!previewText.trim()) return null;
+
+                                          return (
+                                            <p className={`text-black/80 text-[14px] leading-relaxed line-clamp-[12] break-words whitespace-pre-wrap ${!note.title ? 'mt-0' : ''}`}>
+                                              {previewText}
+                                            </p>
+                                          );
+                                        })()
+                                      )}
                                   </>
                                 ) : (
                                   <SkeletonContent note={note} />
