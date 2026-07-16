@@ -145,6 +145,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
   
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const [isSynced, setIsSynced] = useState(!provider || provider.synced || provider.isSynced || false);
 
   useEffect(() => {
     if (noteIdRef.current && noteIdRef.current === note?.id) return;
@@ -224,11 +225,13 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
     };
 
     // LiveblocksYjsProvider exposes 'synced' property and event
-    if (provider.synced || provider.isSynced) {
+    if (!provider || provider.synced || provider.isSynced) {
+      setIsSynced(true);
       initializeContent();
     } else {
-      const handleSync = (isSynced: boolean) => {
-        if (isSynced) initializeContent();
+      const handleSync = (synced: boolean) => {
+        setIsSynced(synced);
+        if (synced) initializeContent();
       };
       provider.on('synced', handleSync);
       provider.on('sync', handleSync); // Some versions use 'sync' instead of 'synced'
@@ -505,7 +508,16 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
         />
 
         <div style={{ fontFamily: activeFont.css }} className="relative z-10">
-          <EditorContent editor={editor} />
+          {!isSynced ? (
+            <div className="flex flex-col gap-3 mt-2 opacity-70 pointer-events-none w-full">
+              <div className="h-4 w-full skeleton-line"></div>
+              <div className="h-4 w-[92%] skeleton-line"></div>
+              <div className="h-4 w-[96%] skeleton-line"></div>
+              <div className="h-4 w-[60%] skeleton-line"></div>
+            </div>
+          ) : (
+            <EditorContent editor={editor} />
+          )}
         </div>
       </main>
 
