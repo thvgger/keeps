@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, PointerEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Note } from "../lib/data";
+import ShareModal from "./ShareModal";
+import { LiveblocksProvider, RoomProvider, useMyPresence, useOthers } from "@liveblocks/react";
+import { UserPlus } from "lucide-react";
 
 const FONTS = [
   { name: "Inter", css: "'Inter', sans-serif" },
@@ -56,7 +59,21 @@ interface NoteEditorProps {
   onUpdateNote?: (updatedNote: Note) => void;
 }
 
-export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClose, onUpdateNote }: NoteEditorProps) {
+export default function NoteEditor(props: NoteEditorProps) {
+  if (!props.note?.id) {
+    return <NoteEditorInner {...props} />;
+  }
+
+  return (
+    <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
+      <RoomProvider id={props.note.id}>
+        <NoteEditorInner {...props} />
+      </RoomProvider>
+    </LiveblocksProvider>
+  );
+}
+
+function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpdateNote }: NoteEditorProps) {
   const [noteColor, setNoteColor] = useState(note?.color || defaultColor);
   const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
   const colorRef = useRef<HTMLDivElement>(null);
@@ -65,6 +82,13 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isMobileToolbarOpen, setIsMobileToolbarOpen] = useState(false);
   const noteIdRef = useRef<string | null>(null);
+  
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  
+  // Liveblocks presence
+  const [myPresence, updateMyPresence] = useMyPresence();
+  const others = useOthers();
+
   
   const titleRef = useRef<HTMLHeadingElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -478,13 +502,23 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
 
   return (
     <div className={`w-full h-full ${noteColor} relative overflow-hidden flex flex-col mx-auto max-w-[400px] md:max-w-4xl`}>
-      <button 
-        onClick={onClose} 
-        aria-label="Go back" 
-        className="absolute top-6 left-6 md:top-8 md:left-8 z-50 w-12 h-12 bg-black/10 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/20 transition-colors text-black"
-      >
-        <i className="fa-solid fa-chevron-left text-lg"></i>
-      </button>
+      <div className="absolute top-6 left-6 md:top-8 md:left-8 z-50 flex items-center">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-black/70 hover:text-black transition-colors"
+        >
+          <i className="fa-solid fa-arrow-left"></i>
+        </button>
+        {note?.id && (
+          <button 
+            onClick={() => setIsShareModalOpen(true)}
+            className="px-4 py-2 flex items-center gap-2 rounded-full bg-blue-600/10 hover:bg-blue-600/20 text-blue-700 font-semibold text-sm transition-colors ml-2"
+          >
+            <UserPlus size={16} />
+            Share
+          </button>
+        )}
+      </div>
 
       <button 
         onClick={() => setIsMobileToolbarOpen(!isMobileToolbarOpen)} 
@@ -494,8 +528,25 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
         <i className={`fa-solid ${isMobileToolbarOpen ? 'fa-xmark' : 'fa-sliders'} text-lg`}></i>
       </button>
 
-      <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50 hidden md:flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none">
-        {renderToolbarContents()}
+      <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50 hidden md:flex items-center gap-2">
+        {/* Render Other Users Avatars */}
+        {others && others.length > 0 && (
+          <div className="hidden md:flex items-center mr-4">
+            {others.slice(0, 3).map(({ connectionId, info }) => (
+              <div key={connectionId} className="w-8 h-8 rounded-full border-2 border-white -ml-2 first:ml-0 bg-blue-500 flex items-center justify-center text-white text-xs font-bold overflow-hidden" title={info?.name || 'Anonymous'}>
+                {info?.avatar ? <img src={info.avatar} className="w-full h-full object-cover" /> : (info?.name?.charAt(0).toUpperCase() || '?')}
+              </div>
+            ))}
+            {others.length > 3 && (
+              <div className="w-8 h-8 rounded-full border-2 border-white -ml-2 bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold">
+                +{others.length - 3}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="flex items-center gap-1.5 bg-black/10 backdrop-blur-md p-1.5 rounded-full border border-black/5 shadow-sm text-black select-none">
+          {renderToolbarContents()}
+        </div>
       </div>
 
       <AnimatePresence>
@@ -512,12 +563,42 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
         )}
       </AnimatePresence>
 
-      <main id="note-scroll-container" className="flex-1 overflow-y-auto px-6 pt-24 md:pt-28 pb-[50vh] no-scrollbar">
+      <main 
+        id="note-scroll-container" 
+        className="flex-1 overflow-y-auto px-6 pt-24 md:pt-28 pb-[50vh] no-scrollbar relative"
+        onPointerMove={(e) => {
+          updateMyPresence({ cursor: { x: Math.round(e.clientX), y: Math.round(e.clientY) } });
+        }}
+        onPointerLeave={() => updateMyPresence({ cursor: null })}
+      >
+        {/* Render Other Users Cursors */}
+        {others && others.map(({ connectionId, presence, info }) => {
+          if (presence?.cursor) {
+            return (
+              <div 
+                key={connectionId}
+                className="pointer-events-none absolute z-50 flex items-center gap-2 transition-transform duration-100 ease-linear"
+                style={{
+                  transform: `translate(${presence.cursor.x}px, ${presence.cursor.y}px)`
+                }}
+              >
+                <svg width="24" height="36" viewBox="0 0 24 36" fill="none" stroke="white" strokeWidth="2" className="text-blue-500 fill-current drop-shadow-md">
+                  <path d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z" />
+                </svg>
+                <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-md whitespace-nowrap shadow-md mt-6 ml-2">
+                  {info?.name || "Anonymous"}
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })}
+
         <h1 
           ref={titleRef}
           id="note-title-input"
           style={{ fontFamily: activeFont.css }}
-          className="text-[32px] md:text-5xl leading-tight font-bold mb-6 tracking-tight text-black outline-none empty:before:content-['Title'] empty:before:text-black/30 cursor-text pr-16"
+          className="text-[32px] md:text-5xl leading-tight font-bold mb-6 tracking-tight text-black outline-none empty:before:content-['Title'] empty:before:text-black/30 cursor-text pr-16 relative z-10 break-words"
           contentEditable
           suppressContentEditableWarning
           onInput={handleContentInput}
@@ -531,7 +612,7 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
           ref={bodyRef}
           id="note-body-input"
           style={{ fontFamily: activeFont.css }}
-          className="outline-none empty:before:content-['Start_typing...'] empty:before:text-gray-800/40 cursor-text min-h-[100px] text-[15px] md:text-lg leading-relaxed font-medium text-gray-800 [&>p]:mb-6"
+          className="outline-none empty:before:content-['Start_typing...'] empty:before:text-gray-800/40 cursor-text min-h-[100px] text-[15px] md:text-lg leading-relaxed font-medium text-gray-800 [&>p]:mb-6 relative z-10 break-words"
           contentEditable
           suppressContentEditableWarning
           onInput={handleContentInput}
@@ -542,6 +623,14 @@ export default function NoteEditor({ note, defaultColor = "bg-card-coral", onClo
           onFocus={ensureCursorVisible}
         />
       </main>
+
+      {note?.id && (
+        <ShareModal 
+          noteId={note.id}
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

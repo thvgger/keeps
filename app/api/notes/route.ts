@@ -11,7 +11,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await pool.query("SELECT * FROM notes WHERE user_id = $1 ORDER BY created_at ASC", [userId]);
+    const result = await pool.query(`
+      SELECT n.*, c.role as collaborator_role
+      FROM notes n
+      LEFT JOIN note_collaborators c ON n.id = c.note_id AND c.user_id = $1
+      WHERE n.user_id = $1 OR c.user_id = $1
+      ORDER BY n.created_at ASC
+    `, [userId]);
     const notes = result.rows.map(row => ({
       id: row.id,
       title: row.title,
@@ -20,7 +26,10 @@ export async function GET() {
       paragraphs: row.paragraphs || [],
       listItems: row.list_items || null,
       orderedListItems: row.ordered_list_items || null,
-      interactivePrompt: row.interactive_prompt || null
+      interactivePrompt: row.interactive_prompt || null,
+      role: row.user_id === userId ? "owner" : row.collaborator_role,
+      publicLinkId: row.public_link_id || null,
+      publicRole: row.public_role || null
     }));
     return NextResponse.json(notes);
   } catch (error) {
@@ -39,9 +48,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { id, title, color, font, paragraphs, listItems, orderedListItems, interactivePrompt } = body;
 
-    const checkResult = await pool.query("SELECT user_id FROM notes WHERE id = $1", [id]);
-    if (checkResult.rows.length > 0 && checkResult.rows[0].user_id !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const checkResult = await pool.query(`
+      SELECT n.user_id, c.role as collaborator_role
+      FROM notes n
+      LEFT JOIN note_collaborators c ON n.id = c.note_id AND c.user_id = $2
+      WHERE n.id = $1
+    `, [id, userId]);
+
+    let ownerId = userId;
+    if (checkResult.rows.length > 0) {
+      const row = checkResult.rows[0];
+      if (row.user_id !== userId && row.collaborator_role !== 'editor') {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      ownerId = row.user_id; // Keep the original owner
     }
     
     await pool.query(
@@ -55,7 +75,6 @@ export async function POST(request: NextRequest) {
          list_items = $6,
          ordered_list_items = $7,
          interactive_prompt = $8,
-         user_id = $9,
          updated_at = CURRENT_TIMESTAMP`,
       [
         id,
@@ -66,7 +85,7 @@ export async function POST(request: NextRequest) {
         listItems ? JSON.stringify(listItems) : null,
         orderedListItems || null,
         interactivePrompt || null,
-        userId
+        ownerId
       ]
     );
     
@@ -88,9 +107,20 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, title, color, font, paragraphs, listItems, orderedListItems, interactivePrompt } = body;
 
-    const checkResult = await pool.query("SELECT user_id FROM notes WHERE id = $1", [id]);
-    if (checkResult.rows.length > 0 && checkResult.rows[0].user_id !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const checkResult = await pool.query(`
+      SELECT n.user_id, c.role as collaborator_role
+      FROM notes n
+      LEFT JOIN note_collaborators c ON n.id = c.note_id AND c.user_id = $2
+      WHERE n.id = $1
+    `, [id, userId]);
+
+    let ownerId = userId;
+    if (checkResult.rows.length > 0) {
+      const row = checkResult.rows[0];
+      if (row.user_id !== userId && row.collaborator_role !== 'editor') {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      ownerId = row.user_id; // Keep the original owner
     }
     
     await pool.query(
@@ -104,7 +134,6 @@ export async function PUT(request: NextRequest) {
          list_items = $6,
          ordered_list_items = $7,
          interactive_prompt = $8,
-         user_id = $9,
          updated_at = CURRENT_TIMESTAMP`,
       [
         id,
@@ -115,7 +144,7 @@ export async function PUT(request: NextRequest) {
         listItems ? JSON.stringify(listItems) : null,
         orderedListItems || null,
         interactivePrompt || null,
-        userId
+        ownerId
       ]
     );
     

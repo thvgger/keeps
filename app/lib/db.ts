@@ -41,4 +41,22 @@ export async function initDb() {
   await pool.query(`
     ALTER TABLE notes ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(id) ON DELETE CASCADE;
   `);
+
+  await pool.query(`
+    ALTER TABLE notes ADD COLUMN IF NOT EXISTS public_link_id TEXT UNIQUE;
+  `);
+
+  await pool.query(`
+    ALTER TABLE notes ADD COLUMN IF NOT EXISTS public_role TEXT;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS note_collaborators (
+      note_id TEXT REFERENCES notes(id) ON DELETE CASCADE,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'viewer',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (note_id, user_id)
+    );
+  `);
 }

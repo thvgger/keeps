@@ -431,7 +431,7 @@ export default function Sidebar({
                               className="block text-left w-full outline-none focus:ring-2 focus:ring-white/50 rounded-2xl"
                             >
                               <article
-                                className={`${note.color} rounded-2xl p-4 text-text-dark h-fit cursor-pointer text-left w-full flex flex-col relative`}
+                                className={`${note.color} rounded-2xl p-4 text-text-dark h-fit cursor-pointer text-left w-full flex flex-col relative break-words`}
                               >
                                 {selectionMode && (
                                   <div className="absolute top-3 right-3 w-5 h-5 rounded-full border border-black/30 flex items-center justify-center bg-white/20 transition-all">
@@ -443,7 +443,7 @@ export default function Sidebar({
                                 {isRevealed ? (
                                   <>
                                     {note.title && (
-                                      <h3 className="font-bold text-base leading-tight mb-2 pr-6">
+                                      <h3 className="font-bold text-base leading-tight mb-2 pr-6 break-words">
                                         {note.title}
                                       </h3>
                                     )}
@@ -461,7 +461,7 @@ export default function Sidebar({
                                                   <div className="w-2 h-2 bg-black rounded-full absolute"></div>
                                                 )}
                                               </div>
-                                              <span className="text-xs font-medium truncate">
+                                              <span className="text-xs font-medium truncate break-words">
                                                 {item.text}
                                               </span>
                                             </li>
@@ -477,11 +477,11 @@ export default function Sidebar({
                                       (() => {
                                         const previewText = note.paragraphs ? cleanHtmlForPreview(note.paragraphs.join(" ")) : "";
                                         return previewText.length < 120 ? (
-                                          <p className="font-bold text-base leading-tight">
+                                          <p className="font-bold text-base leading-tight break-words">
                                             {previewText}
                                           </p>
                                         ) : (
-                                          <p className="text-text-dark/80 text-sm leading-relaxed line-clamp-[10]">
+                                          <p className="text-text-dark/80 text-sm leading-relaxed line-clamp-[10] break-words">
                                             {previewText}
                                           </p>
                                         );
