@@ -92,14 +92,12 @@ function CollaborativeNoteEditorWrapper(props: NoteEditorProps) {
   const room = useRoom();
   const userInfo = useSelf((me) => me.info) || { name: 'Anonymous', color: '#3b82f6', avatar: '' };
 
-  const [doc, setDoc] = useState<Y.Doc>();
-  const [provider, setProvider] = useState<any>();
+  const [yjsState, setYjsState] = useState<{ doc: Y.Doc, provider: any, key: number }>();
 
   useEffect(() => {
     const yDoc = new Y.Doc();
     const yProvider = new LiveblocksYjsProvider(room, yDoc);
-    setDoc(yDoc);
-    setProvider(yProvider);
+    setYjsState({ doc: yDoc, provider: yProvider, key: Date.now() + Math.random() });
 
     return () => {
       yDoc.destroy();
@@ -107,11 +105,11 @@ function CollaborativeNoteEditorWrapper(props: NoteEditorProps) {
     };
   }, [room]);
 
-  if (!doc || !provider) {
+  if (!yjsState) {
     return <div className="flex-1 w-full h-full flex items-center justify-center bg-gray-50/50">Connecting editor...</div>;
   }
 
-  return <NoteEditorInner {...props} others={others} updateMyPresence={updateMyPresence} doc={doc} provider={provider} userInfo={userInfo} />;
+  return <NoteEditorInner key={yjsState.key} {...props} others={others} updateMyPresence={updateMyPresence} doc={yjsState.doc} provider={yjsState.provider} userInfo={userInfo} />;
 }
 
 const getLegacyHTML = (note?: Note | null) => {
