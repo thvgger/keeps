@@ -475,8 +475,9 @@ export default function Sidebar({
                                         )}
                                       </ul>
                                     ) : (
-                                      (() => {
-                                        const previewText = note.paragraphs ? cleanHtmlForPreview(note.paragraphs.join(" ")) : "";
+                                        (() => {
+                                          const rawHtml = note.htmlContent || (note.paragraphs ? note.paragraphs.join(" ") : "");
+                                          const previewText = note.previewText || cleanHtmlForPreview(rawHtml);
                                         return previewText.length < 120 ? (
                                           <p className="font-bold text-base leading-tight break-words">
                                             {previewText}

@@ -7,6 +7,8 @@ export interface Note {
   orderedListItems?: string[];
   interactivePrompt?: string;
   font?: string;
+  htmlContent?: string;
+  previewText?: string;
 }
 
 export const dummyNotes: Note[] = [
