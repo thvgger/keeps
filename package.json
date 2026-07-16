@@ -16,7 +16,7 @@
     "@liveblocks/yjs": "^3.22.0",
     "@neondatabase/serverless": "^1.1.0",
     "@tiptap/extension-collaboration": "^3.28.0",
-    "@tiptap/extension-collaboration-cursor": "^2.26.2",
+    "@tiptap/extension-collaboration-cursor": "^3.0.0",
     "@tiptap/extension-placeholder": "^3.28.0",
     "@tiptap/extension-task-item": "^3.28.0",
     "@tiptap/extension-task-list": "^3.28.0",
