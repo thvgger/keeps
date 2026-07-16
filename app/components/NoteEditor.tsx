@@ -243,6 +243,17 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
     }
   }, [editor, provider, note]);
 
+  useEffect(() => {
+    if (editor && userInfo && doc && provider) {
+      // Sometimes Liveblocks suspense resolves before the info is perfectly propagated
+      // or TipTap doesn't catch it on initial mount. This forces the cursor to update.
+      editor.commands.updateUser({
+        name: userInfo.name || 'Anonymous',
+        color: userInfo.color || '#3b82f6'
+      });
+    }
+  }, [editor, userInfo, doc, provider]);
+
   const handleTitleInput = () => {
     if (!editor) return;
     const title = titleRef.current?.innerText || "";
