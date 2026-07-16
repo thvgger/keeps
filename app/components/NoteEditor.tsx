@@ -195,7 +195,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
       Placeholder.configure({ placeholder: 'Start typing...' }),
       ...(doc && provider ? [
         Collaboration.configure({ document: doc }),
-        // CollaborationCursor.configure({ provider, user: { name: userInfo?.name || 'Anonymous', color: userInfo?.color || '#3b82f6' } }),
+        CollaborationCursor.configure({ provider, user: { name: userInfo?.name || 'Anonymous', color: userInfo?.color || '#3b82f6' } }),
       ] : []),
     ],
     // The initial content is ignored by TipTap if Collaboration is active, so we must set it manually after sync
