@@ -78,7 +78,7 @@ export default function NoteEditor(props: NoteEditorProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider id={props.note.id} initialPresence={{ cursor: null }}>
-        <ClientSideSuspense fallback={<div className="flex-1 w-full h-full flex items-center justify-center bg-gray-50/50">Loading editor...</div>}>
+        <ClientSideSuspense fallback={<NoteEditorInner key={`suspense-${props.note.id}`} {...props} others={[]} updateMyPresence={() => {}} />}>
           {() => <CollaborativeNoteEditorWrapper {...props} />}
         </ClientSideSuspense>
       </RoomProvider>
@@ -93,20 +93,29 @@ function CollaborativeNoteEditorWrapper(props: NoteEditorProps) {
   const userInfo = useSelf((me) => me.info) || { name: 'Anonymous', color: '#3b82f6', avatar: '' };
 
   const [yjsState, setYjsState] = useState<{ doc: Y.Doc, provider: any, key: number }>();
+  const [isSynced, setIsSynced] = useState(false);
 
   useEffect(() => {
     const yDoc = new Y.Doc();
     const yProvider = new LiveblocksYjsProvider(room, yDoc);
     setYjsState({ doc: yDoc, provider: yProvider, key: Date.now() + Math.random() });
 
+    const handleSync = (synced: boolean) => {
+      setIsSynced(synced);
+    };
+    yProvider.on('synced', handleSync);
+    yProvider.on('sync', handleSync);
+
     return () => {
+      yProvider.off('synced', handleSync);
+      yProvider.off('sync', handleSync);
       yDoc.destroy();
       yProvider.destroy();
     };
   }, [room]);
 
-  if (!yjsState) {
-    return <div className="flex-1 w-full h-full flex items-center justify-center bg-gray-50/50">Connecting editor...</div>;
+  if (!yjsState || !isSynced) {
+    return <NoteEditorInner key={`local-${props.note?.id}`} {...props} others={[]} updateMyPresence={() => {}} />;
   }
 
   return <NoteEditorInner key={yjsState?.key} {...props} others={others} updateMyPresence={updateMyPresence} doc={yjsState?.doc} provider={yjsState?.provider} userInfo={userInfo} />;
