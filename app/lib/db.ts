@@ -33,6 +33,7 @@ export async function initDb() {
       list_items JSONB,
       ordered_list_items TEXT[],
       interactive_prompt TEXT,
+      html_content TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -40,6 +41,10 @@ export async function initDb() {
 
   await pool.query(`
     ALTER TABLE notes ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(id) ON DELETE CASCADE;
+  `);
+
+  await pool.query(`
+    ALTER TABLE notes ADD COLUMN IF NOT EXISTS html_content TEXT;
   `);
 
   await pool.query(`

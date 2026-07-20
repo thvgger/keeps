@@ -30,6 +30,7 @@ export async function GET() {
       listItems: row.list_items || null,
       orderedListItems: row.ordered_list_items || null,
       interactivePrompt: row.interactive_prompt || null,
+      htmlContent: row.html_content || null,
       role: row.user_id === userId ? "owner" : row.collaborator_role,
       publicLinkId: row.public_link_id || null,
       publicRole: row.public_role || null,
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, title, color, font, paragraphs, listItems, orderedListItems, interactivePrompt } = body;
+    const { id, title, color, font, paragraphs, listItems, orderedListItems, interactivePrompt, htmlContent } = body;
 
     const checkResult = await pool.query(`
       SELECT n.user_id, c.role as collaborator_role
@@ -69,8 +70,8 @@ export async function POST(request: NextRequest) {
     }
     
     await pool.query(
-      `INSERT INTO notes (id, title, color, font, paragraphs, list_items, ordered_list_items, interactive_prompt, user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO notes (id, title, color, font, paragraphs, list_items, ordered_list_items, interactive_prompt, html_content, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (id) DO UPDATE SET
          title = $2,
          color = $3,
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
          list_items = $6,
          ordered_list_items = $7,
          interactive_prompt = $8,
+         html_content = $9,
          updated_at = CURRENT_TIMESTAMP`,
       [
         id,
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest) {
         listItems ? JSON.stringify(listItems) : null,
         orderedListItems || null,
         interactivePrompt || null,
+        htmlContent || null,
         ownerId
       ]
     );
