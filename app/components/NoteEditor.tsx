@@ -72,7 +72,7 @@ interface NoteEditorInnerProps extends NoteEditorProps {
 
 export default function NoteEditor(props: NoteEditorProps) {
   if (!props.note?.id || !props.note.isShared) {
-    return <NoteEditorInner {...props} others={[]} updateMyPresence={() => {}} />;
+    return <NoteEditorInner key={props.note?.id || 'new'} {...props} others={[]} updateMyPresence={() => {}} />;
   }
 
   return (
@@ -200,6 +200,7 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
       ] : []),
     ],
     // The initial content is ignored by TipTap if Collaboration is active, so we must set it manually after sync
+    content: (!doc && !provider) ? (note?.htmlContent || getLegacyHTML(note)) : undefined,
     editorProps: {
       attributes: {
         class: 'outline-none min-h-[100px] text-[15px] md:text-lg leading-relaxed font-medium text-gray-800 relative z-10',
@@ -212,7 +213,13 @@ function NoteEditorInner({ note, defaultColor = "bg-card-coral", onClose, onUpda
   });
 
   useEffect(() => {
-    if (!editor || !provider) return;
+    if (!editor) return;
+    
+    // For non-collaborative notes, content is set via the useEditor `content` prop.
+    if (!provider) {
+      setIsSynced(true);
+      return;
+    }
 
     const initializeContent = () => {
       // If the Yjs document is empty, populate it with our existing Postgres data
